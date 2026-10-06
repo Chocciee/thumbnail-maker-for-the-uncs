@@ -46,7 +46,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 #msg,#msg2{font-size:12px;color:var(--muted);min-height:16px;margin-top:6px}
 .chk{display:flex;gap:6px;align-items:center;margin-top:10px;color:var(--ink);font-size:13px}
 @media (max-width:1020px){.app{grid-template-columns:1fr}.stage{order:-1}}
-.tplwrap{margin:0 20px 24px}
+.tplwrap{margin:16px 0 0;min-width:0}
 .tplrow{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
 .tpl{flex:0 0 210px;cursor:pointer;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px;text-align:center}
 .tpl:hover,.tpl:focus-visible{border-color:#6fb86f}
@@ -80,6 +80,12 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
     <canvas id="cv" width="1280" height="720" aria-label="Thumbnail canvas"></canvas>
     <p class="hint">1280 × 720. Click to select, drag to move, pull the round handle to resize (text wraps inside its box), double-click text to edit. Delete removes, arrow keys nudge.</p>
     <p class="hint">Made by Chocciee for my GW2 friends. Feel free to use it! Support, feedback or requests go to me only for those who already know how to find me ^ ^</p>
+    <section class="card tplwrap" id="tplcard">
+  <h2>Templates</h2>
+  <div class="tplrow" id="tpl"></div>
+  <p class="hint">Click a template to load it. This replaces your current layout.</p>
+  <div class="btns"><button id="tplx">Save my layout as a template file</button></div>
+</section>
   </main>
   <aside>
     <div class="card">
@@ -122,12 +128,6 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
     </div>
   </aside>
 </div>
-<section class="card tplwrap" id="tplcard">
-  <h2>Templates</h2>
-  <div class="tplrow" id="tpl"></div>
-  <p class="hint">Click a template to load it. This replaces your current layout.</p>
-  <div class="btns"><button id="tplx">Save my layout as a template file</button></div>
-</section>
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
