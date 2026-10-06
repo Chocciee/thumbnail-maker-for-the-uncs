@@ -123,6 +123,7 @@ let items=[],sel=null,bg={img:null,color:'#262b38',dir:'all',fx:{vig:0,dark:0,li
 let BUILT={},SHARED_BG=[];
 async function loadLibrary(){try{const r=await fetch('bank/manifest.json',{cache:'no-cache'}),m=await r.json();
   SHARED_BG=(m.backgrounds||[]).map(p=>p.split('/').map(encodeURIComponent).join('/'));BUILT=Object.fromEntries(Object.entries(m.images||{}).map(([k,v])=>[k,v.map(p=>p.split('/').map(encodeURIComponent).join('/'))]));
+  if(SHARED_BG.length)setBg(SHARED_BG[Math.floor(Math.random()*SHARED_BG.length)]);
   if(!BUILT[cat])cat=Object.keys(BUILT)[0]||'My uploads'}catch(e){}renderBank();renderBgs()}
 let user={'My uploads':[]},cat='My uploads',store=true;
 try{const s=localStorage.getItem('thumb-bank');if(s)user=Object.assign(user,JSON.parse(s))}catch(e){}
