@@ -54,7 +54,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   <aside>
     <div class="card">
       <h2>Background</h2>
-      <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#ABDCAV" style="margin-bottom:10px">
+      <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#bdc0c0" style="margin-bottom:10px">
       <div class="bank wide" id="bgbank"></div>
       <div class="btns"><button class="pri" id="bgup">Add my own backgrounds</button><button id="bgclr">Use plain colour</button></div>
       <input type="file" id="bgf" accept="image/*" multiple hidden>
@@ -100,7 +100,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
-let items=[],sel=null,bg={img:null,color:'#ABDCAV'};
+let items=[],sel=null,bg={img:null,color:'#bdc0c0'};
 
 /* ---------- bank ---------- */
 let BUILT={},SHARED_BG=[];
