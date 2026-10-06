@@ -1,8 +1,16 @@
 {
   "backgrounds": [
+    "bank/backgrounds/1280px-Ura.jpg",
+    "bank/backgrounds/1920px-Greer,_the_Blightbringer.jpg",
     "bank/backgrounds/1920px-Mount_Balrior_loading_screen.png",
     "bank/backgrounds/1920px-Nexus_of_Eternity_loading_screen.png",
-    "bank/backgrounds/Shipwreck_Strand_loading_screen.png"
+    "bank/backgrounds/Decima,_the_Stormsinger.jpg",
+    "bank/backgrounds/Godspawn_Greer_07.jpg",
+    "bank/backgrounds/Godspawn_concept_art.jpg",
+    "bank/backgrounds/Shipwreck_Strand_loading_screen.png",
+    "bank/backgrounds/Special_Forces_Training_Area.jpg",
+    "bank/backgrounds/Ura_(broken_armor).jpg",
+    "bank/backgrounds/Ura_(damaged).jpg"
   ],
   "images": {
     "Class Icons": [
