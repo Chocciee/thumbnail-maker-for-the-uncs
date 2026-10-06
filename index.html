@@ -54,8 +54,9 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   <aside>
     <div class="card">
       <h2>Background</h2>
+      <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#262b38" style="margin-bottom:10px">
       <div class="bank wide" id="bgbank"></div>
-      <div class="btns"><button class="pri" id="bgup">Add my own backgrounds</button><button id="bgclr">No background</button></div>
+      <div class="btns"><button class="pri" id="bgup">Add my own backgrounds</button><button id="bgclr">Use plain colour</button></div>
       <input type="file" id="bgf" accept="image/*" multiple hidden>
       <div id="msg2"></div>
     </div>
@@ -99,12 +100,12 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
-let items=[],sel=null,bg={img:null};
+let items=[],sel=null,bg={img:null,color:'#262b38'};
 
 /* ---------- bank ---------- */
 let BUILT={},SHARED_BG=[];
 async function loadLibrary(){try{const r=await fetch('bank/manifest.json',{cache:'no-cache'}),m=await r.json();
-  SHARED_BG=(m.backgrounds||[]).map(encodeURI);BUILT=Object.fromEntries(Object.entries(m.images||{}).map(([k,v])=>[k,v.map(encodeURI)]));
+  SHARED_BG=(m.backgrounds||[]).map(p=>p.split('/').map(encodeURIComponent).join('/'));BUILT=Object.fromEntries(Object.entries(m.images||{}).map(([k,v])=>[k,v.map(p=>p.split('/').map(encodeURIComponent).join('/'))]));
   if(!BUILT[cat])cat=Object.keys(BUILT)[0]||'My uploads'}catch(e){}renderBank();renderBgs()}
 let user={'My uploads':[]},cat='My uploads',store=true;
 try{const s=localStorage.getItem('thumb-bank');if(s)user=Object.assign(user,JSON.parse(s))}catch(e){}
@@ -115,7 +116,7 @@ function renderBank(){
   cats().forEach(c=>{const b=document.createElement('button');b.textContent=c;if(c===cat)b.className='on';b.onclick=()=>{cat=c;renderBank()};$('tabs').appendChild(b)});
   const g=$('bank');g.innerHTML='';
   const add=(src,idx)=>{const t=document.createElement('div');t.className='t';t.tabIndex=0;t.setAttribute('role','button');t.setAttribute('aria-label','Add image to canvas');
-    t.innerHTML=`<img alt="" src="${src}">`;t.onclick=()=>addImage(src);t.onkeydown=e=>{if(e.key==='Enter')addImage(src)};
+    t.innerHTML=`<img alt="" src="${src}">`;t.firstChild.onerror=()=>{t.style.opacity=.35;t.title='This image could not be loaded'};t.onclick=()=>addImage(src);t.onkeydown=e=>{if(e.key==='Enter')addImage(src)};
     if(idx!==undefined){const x=document.createElement('button');x.className='x';x.textContent='✕';x.title='Remove from bank';x.onclick=e=>{e.stopPropagation();user[cat].splice(idx,1);save();renderBank()};t.appendChild(x)}g.appendChild(t)};
   (BUILT[cat]||[]).forEach(s=>add(s));(user[cat]||[]).forEach((s,i)=>add(s,i));
   if(!g.children.length)g.innerHTML='<div class="empty">Nothing here yet. Use the button below to add images.</div>';
@@ -150,7 +151,7 @@ function draw(ui=true){
     ctx.setLineDash([10,7]);ctx.lineWidth=3;ctx.strokeStyle='#00a8ff';ctx.strokeRect(-w/2,-h/2,w,h);ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(w/2,h/2,13,0,7);ctx.fillStyle='#00a8ff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();ctx.restore()}
 }
-function drawBg(){ctx.fillStyle='#262b38';ctx.fillRect(0,0,W,H);const im=bg.img;if(im){const k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;ctx.drawImage(im,(W-w)/2,(H-h)/2,w,h)}}
+function drawBg(){ctx.fillStyle=bg.color;ctx.fillRect(0,0,W,H);const im=bg.img;if(im){const k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;ctx.drawImage(im,(W-w)/2,(H-h)/2,w,h)}}
 
 /* ---------- interaction ---------- */
 const pt=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*W/r.width}};
@@ -198,14 +199,15 @@ $('bk').onclick=()=>{const i=items.indexOf(sel);if(sel&&i>0){items.splice(i,1);i
 /* ---------- background bank ---------- */
 let bgList=[];try{bgList=JSON.parse(localStorage.getItem('thumb-bgs')||'[]')}catch(e){}
 function saveBgs(){try{localStorage.setItem('thumb-bgs',JSON.stringify(bgList));$('msg2').textContent=''}catch(e){$('msg2').textContent='Could not save to this browser. Your backgrounds will last until you close the page.'}}
-function setBg(src){const im=new Image();im.onload=()=>{bg.img=im;draw()};im.src=src}
+function setBg(src){const im=new Image();im.onload=()=>{bg.img=im;$('msg2').textContent='';draw()};im.onerror=()=>{$('msg2').textContent='That background could not be loaded. Check the file name, and that the file was uploaded to GitHub.'};im.src=src}
 function renderBgs(){const g=$('bgbank');g.innerHTML='';
   [...SHARED_BG.map(x=>[x,-1]),...bgList.map((x,j)=>[x,j])].forEach(([src,i])=>{const t=document.createElement('div');t.className='t';t.tabIndex=0;t.setAttribute('role','button');t.setAttribute('aria-label','Use as background');
-    t.innerHTML=`<img alt="" src="${src}">`;t.onclick=()=>setBg(src);t.onkeydown=e=>{if(e.key==='Enter')setBg(src)};
+    t.innerHTML=`<img alt="" src="${src}">`;t.firstChild.onerror=()=>{t.style.opacity=.35;t.title='This image could not be loaded'};t.onclick=()=>setBg(src);t.onkeydown=e=>{if(e.key==='Enter')setBg(src)};
     if(i>=0){const x=document.createElement('button');x.className='x';x.textContent='✕';x.title='Remove from my bank';x.onclick=e=>{e.stopPropagation();bgList.splice(i,1);saveBgs();renderBgs()};t.appendChild(x)}g.appendChild(t)});
   if(!bgList.length&&!SHARED_BG.length)g.innerHTML='<div class="empty">Nothing here yet. Add background images to use them.</div>'}
 $('bgup').onclick=()=>$('bgf').click();
 $('bgclr').onclick=()=>{bg.img=null;draw()};
+$('bgc').oninput=e=>{bg.color=e.target.value;bg.img=null;draw()};
 $('bgf').onchange=e=>{[...e.target.files].forEach(f=>shrink(f,1280,d=>{bgList.push(d);saveBgs();renderBgs();setBg(d)}));e.target.value=''};
 
 $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='thumbnail.png';a.click();sel=keep;draw()},'image/png')};
