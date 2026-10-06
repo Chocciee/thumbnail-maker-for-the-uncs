@@ -1,14 +1,11 @@
 {
-  "name": "Big title",
+  "name": "Sample Template 1",
   "bg": {
     "color": "#bdc0c0",
     "img": null,
-    "dirs": {
-      "dark": "bottom"
-    },
     "fx": {
-      "vig": 30,
-      "dark": 60,
+      "vig": 0,
+      "dark": 0,
       "light": 0,
       "col": 0
     }
@@ -24,29 +21,29 @@
       "rot": 0,
       "op": 100,
       "sh": true,
-      "text": "Enter class name here",
+      "text": "Enter Class name here",
       "size": 58,
       "bw": 480,
-      "bh": 160,
+      "bh": 240,
       "x": 280,
-      "y": 120
+      "y": 160
     },
     {
       "type": "text",
       "font": "Bangers",
       "color": "#ffffff",
       "stroke": "#000000",
-      "sw": 10,
+      "sw": 0,
       "align": "center",
       "rot": 0,
       "op": 100,
       "sh": true,
-      "text": "Enter title here",
-      "size": 170,
-      "bw": 1120,
-      "bh": 280,
-      "x": 640,
-      "y": 540
+      "text": "Enter encounter name here",
+      "size": 96,
+      "bw": 640,
+      "bh": 320,
+      "x": 920,
+      "y": 200
     }
   ]
 }

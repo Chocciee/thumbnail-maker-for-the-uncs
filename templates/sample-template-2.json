@@ -1,11 +1,17 @@
 {
-  "name": "Two corners",
+  "name": "Sample Template 2",
   "bg": {
     "color": "#bdc0c0",
-    "img": null,
+    "img": "bank/backgrounds/1920px-Nexus_of_Eternity_loading_screen.jpg",
+    "fxc": "#2f6bff",
+    "dirs": {
+      "dark": "bottom",
+      "light": "all",
+      "col": "all"
+    },
     "fx": {
-      "vig": 0,
-      "dark": 0,
+      "vig": 35,
+      "dark": 45,
       "light": 0,
       "col": 0
     }
@@ -16,7 +22,7 @@
       "font": "Bangers",
       "color": "#ffffff",
       "stroke": "#000000",
-      "sw": 0,
+      "sw": 8,
       "align": "center",
       "rot": 0,
       "op": 100,
@@ -33,7 +39,7 @@
       "font": "Bangers",
       "color": "#ffffff",
       "stroke": "#000000",
-      "sw": 0,
+      "sw": 8,
       "align": "center",
       "rot": 0,
       "op": 100,
