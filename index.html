@@ -151,7 +151,7 @@ function wrap(it){ctx.font=`${it.size}px "${it.font}"`;const max=it.bw-2*(it.sw+
 function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(im.naturalWidth||200,im.naturalHeight||200);
   pick(push({type:'img',img:im,w:(im.naturalWidth||200)*k,h:(im.naturalHeight||200)*k}))};im.src=src}
 function push(o){Object.assign(o,{x:W/2,y:H/2,rot:0,op:100,sh:true},o);items.push(o);return o}
-function addText(){pick(push({type:'text',text:'Your text',font:'Lilita One',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
+function addText(){pick(push({type:'text',text:'Your text',font:'Bangers',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
 function pick(it){sel=it;panel();draw()}
 function draw(ui=true){
   ctx.clearRect(0,0,W,H);drawBg();
@@ -266,8 +266,8 @@ $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=d
 
 /* ---------- start ---------- */
 renderBank();renderBgs();loadLibrary();
-const tl=push({type:'text',text:'Enter Class name here',font:'Lilita One',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
-  tr=push({type:'text',text:'Enter encounter name here',font:'Lilita One',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
+const tl=push({type:'text',text:'Enter Class name here',font:'Bangers',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
+  tr=push({type:'text',text:'Enter encounter name here',font:'Bangers',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
 function corners(){tl.x=40+tl.bw/2;tl.y=40+tl.bh/2;tr.x=W-40-tr.bw/2;tr.y=40+tr.bh/2}
 corners();draw();
 Promise.all(FONTS.map(f=>document.fonts.load(`40px "${f}"`))).then(()=>{corners();draw()}).catch(()=>{});
