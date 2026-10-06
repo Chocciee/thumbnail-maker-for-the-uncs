@@ -84,7 +84,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   <h2>Templates</h2>
   <div class="tplrow" id="tpl"></div>
   <p class="hint">Click a template to load it. This replaces your current layout.</p>
-  <div class="btns"><button id="tplx">Save my layout as a template file</button></div>
+  <div class="btns"><button id="tplf">Load a template file</button><button id="tplx">Save my layout as a template file</button><input type="file" id="tplin" accept=".json,application/json" hidden></div>
 </section>
   </main>
   <aside>
@@ -275,7 +275,9 @@ function syncFxUI(){$('bgc').value=bg.color;$('fxc').value=bg.fxc;$('fxv').value
   $('fxdd').value=bg.dirs.dark;$('fxld').value=bg.dirs.light;$('fxcd').value=bg.dirs.col}
 async function applyTemplate(t){
   if(!confirm('Load "'+t.name+'"? This replaces your current layout.'))return;
-  const r=await buildTemplate(t);items=r.items;bg=r.bg;sel=null;panel();syncFxUI();draw()}
+  const r=await buildTemplate(t);items=r.items;bg=r.bg;sel=null;panel();syncFxUI();draw();
+  const want=(t.items||[]).filter(o=>o.type==='img').length,got=r.items.filter(i=>i.type==='img').length;
+  if(want>got)alert((want-got)+' image(s) in this template could not be found and were left out.')}
 async function thumb(t,c){
   const r=await buildTemplate(t),si=items,sb=bg,ss=sel;
   items=r.items;bg=r.bg;sel=null;draw(false);c.getContext('2d').drawImage(cv,0,0,c.width,c.height);
@@ -290,6 +292,11 @@ async function loadTemplates(){
     d.append(c,n);d.onclick=()=>applyTemplate(t);d.onkeydown=e=>{if(e.key==='Enter')applyTemplate(t)};row.appendChild(d);return c});
   try{await Promise.all(FONTS.map(f=>document.fonts.load('40px "'+f+'"')))}catch(e){}
   for(let i=0;i<TEMPLATES.length;i++){try{await thumb(TEMPLATES[i],cs[i])}catch(e){}}}
+$('tplf').onclick=()=>$('tplin').click();
+$('tplin').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();
+  r.onload=()=>{let t;try{t=JSON.parse(r.result)}catch(x){}
+    if(!t||!Array.isArray(t.items)){alert("That file isn't a valid template.");return}
+    t.name=t.name||f.name.replace(/\.json$/i,'');applyTemplate(t)};r.readAsText(f)};
 $('tplx').onclick=()=>{
   const name=(prompt('Name for this template?','My template')||'').trim();if(!name)return;
   let skipped=0;const out={name,bg:{color:bg.color,img:bg.img&&bg.src&&!bg.src.startsWith('data:')?bg.src:null,fxc:bg.fxc,dirs:bg.dirs,fx:bg.fx},items:[]};
