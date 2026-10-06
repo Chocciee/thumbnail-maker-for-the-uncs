@@ -24,7 +24,7 @@ button{cursor:pointer;border:1px solid var(--line);background:var(--field);borde
 button:hover{border-color:var(--muted)}
 button.pri{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-input[type=text],select,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 8px}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 8px}
 textarea{resize:vertical;min-height:58px}
 input[type=color]{width:100%;height:32px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--field)}
 input[type=range]{width:100%;accent-color:#6fb86f}
@@ -54,7 +54,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   <aside>
     <div class="card">
       <h2>Background</h2>
-      <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#262b38" style="margin-bottom:10px">
+      <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#bdc0c0" style="margin-bottom:10px">
       <div class="bank wide" id="bgbank"></div>
       <div class="btns"><button class="pri" id="bgup">Add my own backgrounds</button><button id="bgclr">Use plain colour</button></div>
       <input type="file" id="bgf" accept="image/*" multiple hidden>
@@ -74,7 +74,6 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
     <canvas id="cv" width="1280" height="720" aria-label="Thumbnail canvas"></canvas>
     <p class="hint">1280 × 720. Click to select, drag to move, pull the round handle to resize (text wraps inside its box), double-click text to edit. Delete removes, arrow keys nudge.</p>
     <p class="hint">Made by Chocciee for my GW2 friends. Feel free to use it! Support, feedback or requests go to me only for those who already know how to find me ^ ^</p>
-
   </main>
   <aside>
     <div class="card">
@@ -84,9 +83,11 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
       <h2>Background effects</h2>
       <label for="fxv">Vignette</label><input type="range" id="fxv" min="0" max="100" value="0">
       <label for="fxd">Fade darker</label><input type="range" id="fxd" min="0" max="100" value="0">
+      <select id="fxdd" aria-label="Fade darker covers"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select>
       <label for="fxl">Fade lighter</label><input type="range" id="fxl" min="0" max="100" value="0">
-      <label for="fxb">Fade blue</label><input type="range" id="fxb" min="0" max="100" value="0">
-      <label for="fxdir">Fade covers</label><select id="fxdir"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select>
+      <select id="fxld" aria-label="Fade lighter covers"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select>
+      <label for="fxb">Fade a colour</label><input type="range" id="fxb" min="0" max="100" value="0">
+      <div class="row"><input type="color" id="fxc" value="#2f6bff" aria-label="Fade colour"><select id="fxcd" aria-label="Fade colour covers"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select></div>
       <div class="btns"><button id="fxreset">Reset effects</button></div>
     </div>
     <div class="card" id="props" hidden>
@@ -101,6 +102,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
         <label for="bw">Box width</label><input type="range" id="bw" min="60" max="1280">
         <label for="bh">Box height</label><input type="range" id="bh" min="30" max="720">
       </div>
+      <div class="row"><div><label for="px">X position (px)</label><input type="number" id="px" step="1"></div><div><label for="py">Y position (px)</label><input type="number" id="py" step="1"></div></div>
       <div id="ip" hidden>
         <button class="pri" id="rmai" style="width:100%">Remove background</button>
         <label for="tol">Colour eraser strength</label><input type="range" id="tol" min="1" max="100" value="25">
@@ -117,12 +119,13 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
-let items=[],sel=null,bg={img:null,color:'#262b38',dir:'all',fx:{vig:0,dark:0,light:0,blue:0}};
+let items=[],sel=null,bg={img:null,color:'#bdc0c0',fxc:'#2f6bff',dirs:{dark:'all',light:'all',col:'all'},fx:{vig:0,dark:0,light:0,col:0}};
 
 /* ---------- bank ---------- */
 let BUILT={},SHARED_BG=[];
 async function loadLibrary(){try{const r=await fetch('bank/manifest.json',{cache:'no-cache'}),m=await r.json();
   SHARED_BG=(m.backgrounds||[]).map(p=>p.split('/').map(encodeURIComponent).join('/'));BUILT=Object.fromEntries(Object.entries(m.images||{}).map(([k,v])=>[k,v.map(p=>p.split('/').map(encodeURIComponent).join('/'))]));
+  if(SHARED_BG.length)setBg(SHARED_BG[Math.floor(Math.random()*SHARED_BG.length)]);
   if(SHARED_BG.length)setBg(SHARED_BG[Math.floor(Math.random()*SHARED_BG.length)]);
   if(!BUILT[cat])cat=Object.keys(BUILT)[0]||'My uploads'}catch(e){}renderBank();renderBgs()}
 let user={'My uploads':[]},cat='My uploads',store=true;
@@ -153,7 +156,9 @@ function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(
 function push(o){Object.assign(o,{x:W/2,y:H/2,rot:0,op:100,sh:true},o);items.push(o);return o}
 function addText(){pick(push({type:'text',text:'Your text',font:'Bangers',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
 function pick(it){sel=it;panel();draw()}
+function syncXY(){if(!sel)return;const d=dims(sel);if(document.activeElement!==$('px'))$('px').value=Math.round(sel.x-d.w/2);if(document.activeElement!==$('py'))$('py').value=Math.round(sel.y-d.h/2)}
 function draw(ui=true){
+  if(ui)syncXY();
   ctx.clearRect(0,0,W,H);drawBg();
   items.forEach(it=>{
     const{w,h}=dims(it);ctx.save();ctx.translate(it.x,it.y);ctx.rotate(it.rot*Math.PI/180);ctx.globalAlpha=it.op/100;
@@ -169,11 +174,11 @@ function draw(ui=true){
     ctx.setLineDash([10,7]);ctx.lineWidth=3;ctx.strokeStyle='#00a8ff';ctx.strokeRect(-w/2,-h/2,w,h);ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(w/2,h/2,13,0,7);ctx.fillStyle='#00a8ff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();ctx.restore()}
 }
-function tint(r,g,b,a){if(a<=0)return;const c=`rgba(${r},${g},${b},`;
-  if(bg.dir==='all')ctx.fillStyle=c+a+')';
-  else{const v={bottom:[0,H,0,0],top:[0,0,0,H],left:[0,0,W,0],right:[W,0,0,0]}[bg.dir],gr=ctx.createLinearGradient(...v);gr.addColorStop(0,c+a+')');gr.addColorStop(1,c+'0)');ctx.fillStyle=gr}
+function tint(r,g,b,a,dir){if(a<=0)return;const c=`rgba(${r},${g},${b},`;
+  if(dir==='all')ctx.fillStyle=c+a+')';
+  else{const v={bottom:[0,H,0,0],top:[0,0,0,H],left:[0,0,W,0],right:[W,0,0,0]}[dir],gr=ctx.createLinearGradient(...v);gr.addColorStop(0,c+a+')');gr.addColorStop(1,c+'0)');ctx.fillStyle=gr}
   ctx.fillRect(0,0,W,H)}
-function applyFx(){const f=bg.fx;tint(0,0,0,f.dark/100*.85);tint(255,255,255,f.light/100*.85);tint(40,110,255,f.blue/100*.65);
+function applyFx(){const f=bg.fx,d=bg.dirs,c=[1,3,5].map(i=>parseInt(bg.fxc.slice(i,i+2),16));tint(0,0,0,f.dark/100*.85,d.dark);tint(255,255,255,f.light/100*.85,d.light);tint(c[0],c[1],c[2],f.col/100*.85,d.col);
   if(f.vig>0){const g=ctx.createRadialGradient(W/2,H/2,H*.28,W/2,H/2,Math.hypot(W,H)/2);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${f.vig/100*.95})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}}
 function drawBg(){ctx.fillStyle=bg.color;ctx.fillRect(0,0,W,H);const im=bg.img;if(im){const k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;ctx.drawImage(im,(W-w)/2,(H-h)/2,w,h)}applyFx()}
 
@@ -239,6 +244,8 @@ async function aiRemove(){const it=sel;if(!it||it.type!=='img')return;$('rmai').
 $('rmai').onclick=aiRemove;
 $('rmcol').onclick=()=>{eraser=!eraser;eui()};
 $('rmrest').onclick=()=>{if(sel&&sel.orig){sel.img=sel.orig;sel.orig=null;draw();msg('Original restored.')}};
+$('px').oninput=()=>{if(sel&&$('px').value!==''){sel.x=+$('px').value+dims(sel).w/2;draw()}};
+$('py').oninput=()=>{if(sel&&$('py').value!==''){sel.y=+$('py').value+dims(sel).h/2;draw()}};
 function del(){items=items.filter(i=>i!==sel);sel=null;panel();draw()}
 $('del').onclick=del;$('addt').onclick=addText;
 $('dup').onclick=()=>{if(!sel)return;const c=Object.assign({},sel,{x:sel.x+30,y:sel.y+30});items.push(c);pick(c)};
@@ -256,9 +263,10 @@ function renderBgs(){const g=$('bgbank');g.innerHTML='';
   if(!bgList.length&&!SHARED_BG.length)g.innerHTML='<div class="empty">Nothing here yet. Add background images to use them.</div>'}
 $('bgup').onclick=()=>$('bgf').click();
 $('bgclr').onclick=()=>{bg.img=null;draw()};
-[['fxv','vig'],['fxd','dark'],['fxl','light'],['fxb','blue']].forEach(([id,k])=>$(id).oninput=e=>{bg.fx[k]=+e.target.value;draw()});
-$('fxdir').oninput=e=>{bg.dir=e.target.value;draw()};
-$('fxreset').onclick=()=>{bg.fx={vig:0,dark:0,light:0,blue:0};bg.dir='all';['fxv','fxd','fxl','fxb'].forEach(i=>$(i).value=0);$('fxdir').value='all';draw()};
+[['fxv','vig'],['fxd','dark'],['fxl','light'],['fxb','col']].forEach(([id,k])=>$(id).oninput=e=>{bg.fx[k]=+e.target.value;draw()});
+[['fxdd','dark'],['fxld','light'],['fxcd','col']].forEach(([id,k])=>$(id).oninput=e=>{bg.dirs[k]=e.target.value;draw()});
+$('fxc').oninput=e=>{bg.fxc=e.target.value;draw()};
+$('fxreset').onclick=()=>{bg.fx={vig:0,dark:0,light:0,col:0};bg.dirs={dark:'all',light:'all',col:'all'};['fxv','fxd','fxl','fxb'].forEach(i=>$(i).value=0);['fxdd','fxld','fxcd'].forEach(i=>$(i).value='all');draw()};
 $('bgc').oninput=e=>{bg.color=e.target.value;bg.img=null;draw()};
 $('bgf').onchange=e=>{[...e.target.files].forEach(f=>shrink(f,1280,d=>{bgList.push(d);saveBgs();renderBgs();setBg(d)}));e.target.value=''};
 
