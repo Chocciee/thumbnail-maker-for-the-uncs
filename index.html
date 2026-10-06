@@ -71,7 +71,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   </aside>
   <main class="stage">
     <canvas id="cv" width="1280" height="720" aria-label="Thumbnail canvas"></canvas>
-    <p class="hint">1280 × 720. Click to select, drag to move, pull the round handle to resize, double-click text to edit. Delete removes, arrow keys nudge.</p>
+    <p class="hint">1280 × 720. Click to select, drag to move, pull the round handle to resize (text wraps inside its box), double-click text to edit. Delete removes, arrow keys nudge.</p>
   </main>
   <aside>
     <div class="card">
@@ -84,7 +84,10 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
         <label for="fn">Font</label><select id="fn"></select>
         <label for="sz">Size</label><input type="range" id="sz" min="20" max="400">
         <div class="row"><div><label for="fc">Fill</label><input type="color" id="fc"></div><div><label for="sc">Outline</label><input type="color" id="sc"></div></div>
-        <label for="sw2">Outline width</label><input type="range" id="sw2" min="0" max="30">
+        <label for="sw2">Outline width</label>\1
+        <label for="al">Alignment</label><select id="al"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
+        <label for="bw">Box width</label><input type="range" id="bw" min="60" max="1280">
+        <label for="bh">Box height</label><input type="range" id="bh" min="30" max="720">
       </div>
       <label for="rt">Rotation</label><input type="range" id="rt" min="-180" max="180">
       <label for="op">Opacity</label><input type="range" id="op" min="10" max="100">
@@ -123,15 +126,13 @@ $('upf').onchange=e=>{[...e.target.files].forEach(f=>shrink(f,640,d=>{(user[cat]
 $('mk').onclick=()=>{const n=$('nc').value.trim();if(!n)return;if(!cats().includes(n))user[n]=[];cat=n;$('nc').value='';save();renderBank()};
 
 /* ---------- items ---------- */
-function dims(it){
-  if(it.type==='img')return{w:it.w,h:it.h};
-  ctx.font=`${it.size}px "${it.font}"`;const ls=it.text.split('\n');
-  return{w:Math.max(20,...ls.map(l=>ctx.measureText(l).width))+it.sw*2,h:ls.length*it.size*1.15+it.sw*2};
-}
+function dims(it){return it.type==='img'?{w:it.w,h:it.h}:{w:it.bw,h:it.bh}}
+function wrap(it){ctx.font=`${it.size}px "${it.font}"`;const max=it.bw-2*(it.sw+8),out=[];
+  it.text.split('\n').forEach(p=>{let line='';p.split(' ').forEach(w=>{const t=line?line+' '+w:w;if(line&&ctx.measureText(t).width>max){out.push(line);line=w}else line=t});out.push(line)});return out}
 function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(im.naturalWidth||200,im.naturalHeight||200);
   pick(push({type:'img',img:im,w:(im.naturalWidth||200)*k,h:(im.naturalHeight||200)*k}))};im.src=src}
 function push(o){Object.assign(o,{x:W/2,y:H/2,rot:0,op:100,sh:true},o);items.push(o);return o}
-function addText(){pick(push({type:'text',text:'YOUR TEXT',font:'Bangers',size:140,color:'#ffffff',stroke:'#000000',sw:0}))}
+function addText(){pick(push({type:'text',text:'YOUR TEXT',font:'Bangers',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
 function pick(it){sel=it;panel();draw()}
 function draw(ui=true){
   ctx.clearRect(0,0,W,H);drawBg();
@@ -139,9 +140,10 @@ function draw(ui=true){
     const{w,h}=dims(it);ctx.save();ctx.translate(it.x,it.y);ctx.rotate(it.rot*Math.PI/180);ctx.globalAlpha=it.op/100;
     if(it.sh){ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=18;ctx.shadowOffsetY=7}
     if(it.type==='img')ctx.drawImage(it.img,-w/2,-h/2,w,h);
-    else{ctx.font=`${it.size}px "${it.font}"`;ctx.textBaseline='top';ctx.lineJoin='round';ctx.miterLimit=2;
-      it.text.split('\n').forEach((l,i)=>{const lx=-w/2+it.sw,ly=-h/2+it.sw+i*it.size*1.15;
-        if(it.sw){ctx.lineWidth=it.sw*2;ctx.strokeStyle=it.stroke;ctx.strokeText(l,lx,ly)}ctx.shadowColor='transparent';ctx.fillStyle=it.color;ctx.fillText(l,lx,ly)})}
+    else{ctx.font=`${it.size}px "${it.font}"`;ctx.textBaseline='top';ctx.lineJoin='round';ctx.miterLimit=2;ctx.textAlign=it.align;
+      const ls=wrap(it),lh=it.size*1.15,y0=-ls.length*lh/2,pad=it.sw+8,lx=it.align==='left'?-w/2+pad:it.align==='right'?w/2-pad:0;
+      if(it.sw){ctx.lineWidth=it.sw*2;ctx.strokeStyle=it.stroke;ls.forEach((l,i)=>ctx.strokeText(l,lx,y0+i*lh));ctx.shadowColor='transparent'}
+      ctx.fillStyle=it.color;ls.forEach((l,i)=>ctx.fillText(l,lx,y0+i*lh))}
     ctx.restore();
   });
   if(ui&&sel){const{w,h}=dims(sel);ctx.save();ctx.translate(sel.x,sel.y);ctx.rotate(sel.rot*Math.PI/180);
@@ -164,7 +166,8 @@ cv.onpointerdown=e=>{
 };
 cv.onpointermove=e=>{if(!drag||!sel)return;const p=pt(e);
   if(drag.m==='move'){sel.x+=p.x-drag.px;sel.y+=p.y-drag.py;drag.px=p.x;drag.py=p.y}
-  else{const k=Math.max(.1,Math.hypot(p.x-sel.x,p.y-sel.y)/drag.r0);if(sel.type==='img'){sel.w=drag.w*k;sel.h=drag.h*k}else{sel.size=Math.max(20,Math.min(400,drag.s*k));$('sz').value=sel.size}}
+  else if(sel.type==='img'){const k=Math.max(.1,Math.hypot(p.x-sel.x,p.y-sel.y)/drag.r0);sel.w=drag.w*k;sel.h=drag.h*k}
+  else{const l=loc(sel,p);sel.bw=Math.max(60,Math.min(1280,2*l.x));sel.bh=Math.max(30,Math.min(720,2*l.y));$('bw').value=sel.bw;$('bh').value=sel.bh}
   draw()};
 cv.onpointerup=cv.onpointercancel=()=>{drag=null};
 cv.ondblclick=()=>{if(sel&&sel.type==='text'){$('tx').focus();$('tx').select()}};
@@ -180,11 +183,11 @@ FONTS.forEach(f=>{const o=document.createElement('option');o.value=o.textContent
 function panel(){
   $('props').hidden=!sel;if(!sel)return;
   $('tp').hidden=sel.type!=='text';
-  if(sel.type==='text'){$('tx').value=sel.text;$('fn').value=sel.font;$('sz').value=sel.size;$('fc').value=sel.color;$('sc').value=sel.stroke;$('sw2').value=sel.sw}
+  if(sel.type==='text'){$('tx').value=sel.text;$('fn').value=sel.font;$('sz').value=sel.size;$('fc').value=sel.color;$('sc').value=sel.stroke;$('sw2').value=sel.sw;$('bw').value=sel.bw;$('bh').value=sel.bh;$('al').value=sel.align}
   $('rt').value=sel.rot;$('op').value=sel.op;$('sh').checked=sel.sh;
 }
 const bind=(id,fn)=>$(id).addEventListener('input',()=>{if(sel){fn($(id));draw()}});
-bind('tx',e=>sel.text=e.value||' ');bind('fn',e=>sel.font=e.value);bind('sz',e=>sel.size=+e.value);bind('fc',e=>sel.color=e.value);bind('sc',e=>sel.stroke=e.value);bind('sw2',e=>sel.sw=+e.value);
+bind('tx',e=>sel.text=e.value||' ');bind('fn',e=>sel.font=e.value);bind('sz',e=>sel.size=+e.value);bind('fc',e=>sel.color=e.value);bind('sc',e=>sel.stroke=e.value);bind('sw2',e=>sel.sw=+e.value);bind('bw',e=>sel.bw=+e.value);bind('bh',e=>sel.bh=+e.value);bind('al',e=>sel.align=e.value);
 bind('rt',e=>sel.rot=+e.value);bind('op',e=>sel.op=+e.value);bind('sh',e=>sel.sh=e.checked);
 function del(){items=items.filter(i=>i!==sel);sel=null;panel();draw()}
 $('del').onclick=del;$('addt').onclick=addText;
@@ -209,9 +212,9 @@ $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=d
 
 /* ---------- start ---------- */
 renderBank();renderBgs();loadLibrary();
-const tl=push({type:'text',text:'Enter Class name here',font:'Bangers',size:58,color:'#ffffff',stroke:'#000000',sw:0}),
-  tr=push({type:'text',text:'Enter encounter name here',font:'Bangers',size:96,color:'#ffffff',stroke:'#000000',sw:0});
-function corners(){let d=dims(tl);tl.x=40+d.w/2;tl.y=40+d.h/2;d=dims(tr);tr.x=W-40-d.w/2;tr.y=40+d.h/2}
+const tl=push({type:'text',text:'Enter Class name here',font:'Bangers',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
+  tr=push({type:'text',text:'Enter encounter name here',font:'Bangers',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
+function corners(){tl.x=40+tl.bw/2;tl.y=40+tl.bh/2;tr.x=W-40-tr.bw/2;tr.y=40+tr.bh/2}
 corners();draw();
 Promise.all(FONTS.map(f=>document.fonts.load(`40px "${f}"`))).then(()=>{corners();draw()}).catch(()=>{});
 </script>
