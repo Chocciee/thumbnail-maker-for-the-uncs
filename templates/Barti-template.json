@@ -9,7 +9,7 @@
       "light": "all",
       "col": "all"
     },
-      "fx": {
+    "fx": {
       "vig": 35,
       "dark": 45,
       "light": 0,
@@ -19,37 +19,37 @@
   "items": [
     {
       "type": "text",
+      "text": "Enter Class name here",
       "font": "Bebas Neue",
+      "size": 110,
+      "bw": 1280,
+      "bh": 30,
+      "align": "center",
       "color": "#ffffff",
       "stroke": "#000000",
       "sw": 0,
-      "align": "center",
       "rot": 0,
       "op": 100,
       "sh": true,
-      "text": "Enter Class name here",
-      "size": 60,
-      "bw": 1280,
-      "bh": 30,
-      "x": 0,
-      "y": 550
+      "x": 640,
+      "y": 565
     },
     {
       "type": "text",
+      "text": "Encounter name",
       "font": "Bebas Neue",
+      "size": 210,
+      "bw": 1280,
+      "bh": 30,
+      "align": "center",
       "color": "#ffffff",
       "stroke": "#000000",
       "sw": 0,
-      "align": "center",
       "rot": 0,
       "op": 100,
       "sh": true,
-      "text": "Enter encounter name here",
-      "size": 210,
-      "bw": 1200,
-      "bh": 30,
-      "x": 0,
-      "y": 160
+      "x": 640,
+      "y": 175
     }
   ]
 }
