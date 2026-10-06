@@ -1,6 +1,56 @@
 {
-  "backgrounds": [],
+  "backgrounds": [
+    "bank/backgrounds/1920px-Mount_Balrior_loading_screen.png",
+    "bank/backgrounds/1920px-Nexus_of_Eternity_loading_screen.png",
+    "bank/backgrounds/Shipwreck_Strand_loading_screen.png"
+  ],
   "images": {
-    "Class Icons": []
+    "Class Icons": [
+      "bank/images/Class Icons/800px-Bladesworn_icon_(highres).png",
+      "bank/images/Class Icons/800px-Catalyst_icon_(highres).png",
+      "bank/images/Class Icons/800px-Mechanist_icon_(highres).png",
+      "bank/images/Class Icons/800px-Specter_icon_(highres).png",
+      "bank/images/Class Icons/800px-Untamed_icon_(highres).png",
+      "bank/images/Class Icons/800px-Vindicator_icon_(highres).png",
+      "bank/images/Class Icons/800px-Virtuoso_icon_(highres).png",
+      "bank/images/Class Icons/Amalgam_icon_(highres).png",
+      "bank/images/Class Icons/Antiquary_icon_(unofficial_color).png",
+      "bank/images/Class Icons/Berserker_icon_(highres).png",
+      "bank/images/Class Icons/Chronomancer_icon_(highres).png",
+      "bank/images/Class Icons/Conduit_icon_(highres).png",
+      "bank/images/Class Icons/Daredevil_icon_(highres).png",
+      "bank/images/Class Icons/Deadeye_icon_(highres).png",
+      "bank/images/Class Icons/Dragonhunter_icon_(highres).png",
+      "bank/images/Class Icons/Druid_icon_(highres).png",
+      "bank/images/Class Icons/Elementalist_icon_(highres).png",
+      "bank/images/Class Icons/Engineer_icon_(highres).png",
+      "bank/images/Class Icons/Evoker_icon_(highres).png",
+      "bank/images/Class Icons/Firebrand_icon_(highres).png",
+      "bank/images/Class Icons/Galeshot_icon_(highres).png",
+      "bank/images/Class Icons/Guardian_icon_(highres).png",
+      "bank/images/Class Icons/Harbinger_icon_(highres).png",
+      "bank/images/Class Icons/Herald_icon_(highres).png",
+      "bank/images/Class Icons/Holosmith_icon_(highres).png",
+      "bank/images/Class Icons/Luminary_icon_(unofficial_color).png",
+      "bank/images/Class Icons/Mesmer_icon_(highres).png",
+      "bank/images/Class Icons/Mirage_icon_(highres).png",
+      "bank/images/Class Icons/Necromancer_icon_(highres).png",
+      "bank/images/Class Icons/Paragon_icon_(highres).png",
+      "bank/images/Class Icons/Ranger_icon_(highres).png",
+      "bank/images/Class Icons/Reaper_icon_(highres).png",
+      "bank/images/Class Icons/Renegade_icon_(highres).png",
+      "bank/images/Class Icons/Revenant_icon_(highres).png",
+      "bank/images/Class Icons/Ritualist_icon_(highres).png",
+      "bank/images/Class Icons/Scourge_icon_(highres).png",
+      "bank/images/Class Icons/Scrapper_icon_(highres).png",
+      "bank/images/Class Icons/Soulbeast_icon_(highres).png",
+      "bank/images/Class Icons/Spellbreaker_icon_(highres).png",
+      "bank/images/Class Icons/Tempest_icon_(highres).png",
+      "bank/images/Class Icons/Thief_icon_(highres).png",
+      "bank/images/Class Icons/Troubadour_icon_(highres).png",
+      "bank/images/Class Icons/Warrior_icon_(highres).png",
+      "bank/images/Class Icons/Weaver_icon_(highres).png",
+      "bank/images/Class Icons/Willbender_icon_(highres).png"
+    ]
   }
 }
