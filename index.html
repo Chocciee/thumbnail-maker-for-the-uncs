@@ -67,13 +67,21 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
       <div id="msg2"></div>
     </div>
     <div class="card">
-      <h2>Image bank</h2>
+      <div class="tabs" id="lt"><button class="on" id="tabbank">Image bank</button><button id="tabpaint">Paint</button></div>
+      <div id="bankpane">
       <div class="tabs" id="tabs"></div>
       <div class="bank" id="bank"></div>
       <div class="btns"><button class="pri" id="up">Add my own images here</button></div>
       <input type="file" id="upf" accept="image/*" multiple hidden>
       <div class="inline"><input type="text" id="nc" placeholder="New category name" maxlength="20"><button id="mk">Create</button></div>
-      <div id="msg"></div><p class="hint">Tiles with a ✕ are yours and are saved in this browser only. The rest come from the shared library.</p>
+      <div id="msg"></div><p class="hint">Tiles with a ✕ are yours and are saved in this browser only. The rest come from the shared library.</p></div>
+      <div id="paintpane" hidden>
+        <div class="tabs" id="tools"><button data-t="select" class="on">Select</button><button data-t="pen">Pen</button><button data-t="line">Line</button><button data-t="arrow">Arrow</button><button data-t="rect">Rectangle</button><button data-t="ellipse">Ellipse</button></div>
+        <div class="row"><div><label for="pcol">Colour</label><input type="color" id="pcol" value="#ff2b2b"></div><div><label for="plw">Line width</label><input type="range" id="plw" min="1" max="60" value="10"></div></div>
+        <label class="chk"><input type="checkbox" id="pfill"> Fill shapes</label>
+        <div class="btns"><button id="pundo">Undo last drawing</button></div>
+        <p class="hint">Pick a tool, then drag on the picture. Every drawing is its own object: choose Select to move, resize, recolour or delete it.</p>
+      </div>
     </div>
   </aside>
   <main class="stage">
@@ -114,6 +122,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
         <label for="bw">Box width</label><input type="range" id="bw" min="60" max="1280">
         <label for="bh">Box height</label><input type="range" id="bh" min="30" max="720">
       </div>
+      <div id="dp" hidden><div class="row"><div><label for="dcol">Colour</label><input type="color" id="dcol"></div><div><label for="dlw">Line width</label><input type="range" id="dlw" min="1" max="60"></div></div><label class="chk"><input type="checkbox" id="dfill"> Fill shape</label></div>
       <div class="row"><div><label for="px">X position (px)</label><input type="number" id="px" step="1"></div><div><label for="py">Y position (px)</label><input type="number" id="py" step="1"></div></div>
       <div id="ip" hidden>
         <button class="pri" id="rmai" style="width:100%">Remove background</button>
@@ -160,7 +169,7 @@ $('upf').onchange=e=>{[...e.target.files].forEach(f=>shrink(f,640,d=>{(user[cat]
 $('mk').onclick=()=>{const n=$('nc').value.trim();if(!n)return;if(!cats().includes(n))user[n]=[];cat=n;$('nc').value='';save();renderBank()};
 
 /* ---------- items ---------- */
-function dims(it){return it.type==='img'?{w:it.w,h:it.h}:{w:it.bw,h:it.bh}}
+function dims(it){return it.type==='text'?{w:it.bw,h:it.bh}:{w:it.w,h:it.h}}
 function wrap(it){ctx.font=`${it.size}px "${it.font}"`;const max=it.bw-2*(it.sw+8),out=[];
   it.text.split('\n').forEach(p=>{let line='';p.split(' ').forEach(w=>{const t=line?line+' '+w:w;if(line&&ctx.measureText(t).width>max){out.push(line);line=w}else line=t});out.push(line)});return out}
 function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(im.naturalWidth||200,im.naturalHeight||200);
@@ -172,11 +181,11 @@ function syncXY(){if(!sel)return;const d=dims(sel);if(document.activeElement!==$
 function draw(ui=true){
   if(ui)syncXY();
   ctx.clearRect(0,0,W,H);drawBg();
-  items.forEach(it=>{
+  items.concat(draft?[draft]:[]).forEach(it=>{
     const{w,h}=dims(it);ctx.save();ctx.translate(it.x,it.y);ctx.rotate(it.rot*Math.PI/180);ctx.globalAlpha=it.op/100;
     if(it.sh){ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=18;ctx.shadowOffsetY=7}
     if(it.type==='img')ctx.drawImage(it.img,-w/2,-h/2,w,h);
-    else{ctx.font=`${it.size}px "${it.font}"`;ctx.textBaseline='top';ctx.lineJoin='round';ctx.miterLimit=2;ctx.textAlign=it.align;
+    else if(it.type==='draw')drawShape(it);else{ctx.font=`${it.size}px "${it.font}"`;ctx.textBaseline='top';ctx.lineJoin='round';ctx.miterLimit=2;ctx.textAlign=it.align;
       const ls=wrap(it),lh=it.size*1.15,y0=-ls.length*lh/2,pad=it.sw+8,lx=it.align==='left'?-w/2+pad:it.align==='right'?w/2-pad:0;
       if(it.sw){ctx.lineWidth=it.sw*2;ctx.strokeStyle=it.stroke;ls.forEach((l,i)=>ctx.strokeText(l,lx,y0+i*lh));ctx.shadowColor='transparent'}
       ctx.fillStyle=it.color;ls.forEach((l,i)=>ctx.fillText(l,lx,y0+i*lh))}
@@ -200,6 +209,7 @@ const loc=(it,p)=>{const a=-it.rot*Math.PI/180,dx=p.x-it.x,dy=p.y-it.y;return{x:
 let drag=null;
 cv.onpointerdown=e=>{
   const p=pt(e);
+  if(paintOn&&tool!=='select'){sel=null;panel();dpts=[[p.x,p.y]];drag={m:'paint'};cv.setPointerCapture(e.pointerId);draft=makeDraw(dpts);draw();return}
   if(eraser&&sel&&sel.type==='img'){const l=loc(sel,p);if(Math.abs(l.x)<=sel.w/2&&Math.abs(l.y)<=sel.h/2){eraseAt(l);return}}
   if(sel){const l=loc(sel,p),d=dims(sel);if(Math.hypot(l.x-d.w/2,l.y-d.h/2)<26){drag={m:'size',r0:Math.hypot(p.x-sel.x,p.y-sel.y),w:sel.w,h:sel.h,s:sel.size};cv.setPointerCapture(e.pointerId);return}}
   let hit=null;
@@ -207,12 +217,16 @@ cv.onpointerdown=e=>{
   sel=hit;panel();draw();
   if(hit){drag={m:'move',px:p.x,py:p.y};cv.setPointerCapture(e.pointerId)}
 };
-cv.onpointermove=e=>{if(!drag||!sel)return;const p=pt(e);
+cv.onpointermove=e=>{const p=pt(e);
+  if(drag&&drag.m==='paint'){const q=[p.x,p.y];if(tool==='pen'){const l=dpts[dpts.length-1];if(Math.hypot(q[0]-l[0],q[1]-l[1])>2)dpts.push(q)}else dpts=[dpts[0],q];draft=makeDraw(dpts);draw();return}
+  if(!drag||!sel)return;
   if(drag.m==='move'){sel.x+=p.x-drag.px;sel.y+=p.y-drag.py;drag.px=p.x;drag.py=p.y}
-  else if(sel.type==='img'){const k=Math.max(.1,Math.hypot(p.x-sel.x,p.y-sel.y)/drag.r0);sel.w=drag.w*k;sel.h=drag.h*k}
+  else if(sel.type!=='text'){const k=Math.max(.1,Math.hypot(p.x-sel.x,p.y-sel.y)/drag.r0);sel.w=drag.w*k;sel.h=drag.h*k}
   else{const l=loc(sel,p);sel.bw=Math.max(60,Math.min(1280,2*l.x));sel.bh=Math.max(30,Math.min(720,2*l.y));$('bw').value=sel.bw;$('bh').value=sel.bh}
   draw()};
-cv.onpointerup=cv.onpointercancel=()=>{drag=null};
+cv.onpointerup=cv.onpointercancel=()=>{
+  if(drag&&drag.m==='paint'){const ok=draft&&(tool==='pen'||(dpts.length>1&&Math.hypot(dpts[1][0]-dpts[0][0],dpts[1][1]-dpts[0][1])>3));if(ok)items.push(draft);draft=null;dpts=[];drag=null;draw();return}
+  drag=null};
 cv.ondblclick=()=>{if(sel&&sel.type==='text'){$('tx').focus();$('tx').select()}};
 document.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)||!sel)return;
@@ -224,7 +238,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- panel ---------- */
 FONTS.forEach(f=>{const o=document.createElement('option');o.value=o.textContent=f;o.style.fontFamily=f;$('fn').appendChild(o)});
 function panel(){
-  $('props').hidden=!sel;$('fxcard').hidden=!!sel;if(!sel||sel.type!=='img'){eraser=false;eui()}if(!sel)return;$('ip').hidden=sel.type!=='img';
+  $('props').hidden=!sel;$('fxcard').hidden=!!sel;if(!sel||sel.type!=='img'){eraser=false;eui()}if(!sel)return;$('ip').hidden=sel.type!=='img';$('dp').hidden=sel.type!=='draw';if(sel.type==='draw'){$('dcol').value=sel.color;$('dlw').value=sel.lw;$('dfill').checked=!!sel.fill}
   $('tp').hidden=sel.type!=='text';
   if(sel.type==='text'){$('tx').value=sel.text;$('fn').value=sel.font;$('sz').value=sel.size;$('szn').value=Math.round(sel.size);$('fc').value=sel.color;$('sc').value=sel.stroke;$('sw2').value=sel.sw;$('bw').value=sel.bw;$('bh').value=sel.bh;$('al').value=sel.align}
   $('rt').value=sel.rot;$('op').value=sel.op;$('sh').checked=sel.sh;
@@ -235,7 +249,7 @@ bind('rt',e=>sel.rot=+e.value);bind('op',e=>sel.op=+e.value);bind('sh',e=>sel.sh
 /* ---------- background remover ---------- */
 var eraser=false,rmMod=null;
 const msg=t=>{$('rmmsg').textContent=t};
-function eui(){$('rmcol').textContent=eraser?'Stop erasing':'Erase a colour';cv.style.cursor=eraser?'crosshair':'default';if(eraser)msg('Click a colour on the image to erase it. Raise the strength to clear more shades.')}
+function eui(){$('rmcol').textContent=eraser?'Stop erasing':'Erase a colour';cv.style.cursor=(eraser||(paintOn&&tool!=='select'))?'crosshair':'default';if(eraser)msg('Click a colour on the image to erase it. Raise the strength to clear more shades.')}
 function imgToCanvas(it){const c=document.createElement('canvas');c.width=it.img.naturalWidth||Math.round(it.w);c.height=it.img.naturalHeight||Math.round(it.h);c.getContext('2d').drawImage(it.img,0,0,c.width,c.height);return c}
 function useImage(it,src){const im=new Image();im.onload=()=>{it.orig=it.orig||it.img;it.img=im;it.edited=true;draw()};im.src=src}
 function floodClear(d,w,h,sx,sy,tol){const t=tol*2.55,i0=(sy*w+sx)*4,r=d[i0],g=d[i0+1],b=d[i0+2],seen=new Uint8Array(w*h),st=[sy*w+sx];
@@ -300,13 +314,37 @@ $('tplin').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return
 $('tplx').onclick=()=>{
   const name=(prompt('Name for this template?','My template')||'').trim();if(!name)return;
   let skipped=0;const out={name,bg:{color:bg.color,img:bg.img&&bg.src&&!bg.src.startsWith('data:')?bg.src:null,fxc:bg.fxc,dirs:bg.dirs,fx:bg.fx},items:[]};
-  items.forEach(it=>{const o={};['type','text','font','size','bw','bh','align','color','stroke','sw','w','h','rot','op','sh'].forEach(k=>{if(it[k]!==undefined)o[k]=it[k]});
+  items.forEach(it=>{const o={};['type','text','font','size','bw','bh','align','color','stroke','sw','w','h','rot','op','sh','kind','pts','lw','fill','w0','h0'].forEach(k=>{if(it[k]!==undefined)o[k]=it[k]});
     o.x=Math.round(it.x);o.y=Math.round(it.y);
     if(it.type==='img'){if(!it.src||it.src.startsWith('data:')||it.edited){skipped++;return}o.src=it.src;o.w=Math.round(it.w);o.h=Math.round(it.h)}
     out.items.push(o)});
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));
   a.download=(name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'template')+'.json';a.click();
   if(skipped)alert(skipped+' image(s) were left out because they are your own uploads or edited images. Only images from the shared library can be saved in a template.')};
+/* ---------- paint ---------- */
+var tool='select',paintOn=false,draft=null,dpts=[];
+function setTool(t){tool=t;[...$('tools').children].forEach(b=>b.classList.toggle('on',b.dataset.t===t));cv.style.cursor=(eraser||(paintOn&&t!=='select'))?'crosshair':'default'}
+function setTab(on){paintOn=on;$('bankpane').hidden=on;$('paintpane').hidden=!on;$('tabbank').classList.toggle('on',!on);$('tabpaint').classList.toggle('on',on);setTool(on?(tool==='select'?'pen':tool):'select')}
+function makeDraw(P){
+  if(tool!=='pen'&&P.length<2)P=[P[0],P[0]];
+  const lw=+$('plw').value,pad=tool==='arrow'?lw*2+8:lw/2+2,xs=P.map(a=>a[0]),ys=P.map(a=>a[1]);
+  const x0=Math.min(...xs)-pad,x1=Math.max(...xs)+pad,y0=Math.min(...ys)-pad,y1=Math.max(...ys)+pad,cx=(x0+x1)/2,cy=(y0+y1)/2;
+  return{type:'draw',kind:tool,pts:P.map(([a,b])=>[a-cx,b-cy]),color:$('pcol').value,lw,fill:$('pfill').checked,w:x1-x0,h:y1-y0,w0:x1-x0,h0:y1-y0,x:cx,y:cy,rot:0,op:100,sh:false}}
+function drawShape(it){
+  const sx=it.w/it.w0,sy=it.h/it.h0,P=it.pts.map(([a,b])=>[a*sx,b*sy]);
+  ctx.lineWidth=it.lw;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=it.color;ctx.fillStyle=it.color;ctx.beginPath();
+  if(it.kind==='pen'){if(P.length===1){ctx.arc(P[0][0],P[0][1],it.lw/2,0,7);ctx.fill();return}P.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.stroke()}
+  else if(it.kind==='line'){ctx.moveTo(P[0][0],P[0][1]);ctx.lineTo(P[1][0],P[1][1]);ctx.stroke()}
+  else if(it.kind==='arrow'){const[a,b]=P[0],[c,d]=P[1],an=Math.atan2(d-b,c-a),hl=it.lw*3.5+8;
+    ctx.moveTo(a,b);ctx.lineTo(c-Math.cos(an)*hl*.6,d-Math.sin(an)*hl*.6);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(c,d);ctx.lineTo(c-hl*Math.cos(an-.45),d-hl*Math.sin(an-.45));ctx.lineTo(c-hl*Math.cos(an+.45),d-hl*Math.sin(an+.45));ctx.closePath();ctx.fill()}
+  else{const[a,b]=P[0],[c,d]=P[1];
+    if(it.kind==='rect')ctx.rect(Math.min(a,c),Math.min(b,d),Math.abs(c-a),Math.abs(d-b));else ctx.ellipse((a+c)/2,(b+d)/2,Math.abs(c-a)/2,Math.abs(d-b)/2,0,0,7);
+    it.fill?ctx.fill():ctx.stroke()}}
+$('tabbank').onclick=()=>setTab(false);$('tabpaint').onclick=()=>setTab(true);
+[...$('tools').children].forEach(b=>b.onclick=()=>setTool(b.dataset.t));
+$('pundo').onclick=()=>{for(let i=items.length-1;i>=0;i--)if(items[i].type==='draw'){if(sel===items[i]){sel=null;panel()}items.splice(i,1);draw();return}};
+bind('dcol',e=>sel.color=e.value);bind('dlw',e=>sel.lw=+e.value);bind('dfill',e=>sel.fill=e.checked);
 function del(){items=items.filter(i=>i!==sel);sel=null;panel();draw()}
 $('del').onclick=del;$('addt').onclick=addText;
 $('dup').onclick=()=>{if(!sel)return;const c=Object.assign({},sel,{x:sel.x+30,y:sel.y+30});items.push(c);pick(c)};
