@@ -1,6 +1,9 @@
 # Chocciee's Thumbnail Maker
 This is a Thumbnail maker with templates for GW2 because my friend Barti is too unc to make thumbnails himself :>
 
+### User instrction
+Access the tool here: https://chocciee.github.io/thumbnail-maker-for-the-uncs/
+
 ### Available Features
 - Auto set to default Youtube Thumbnail size
 - Allow Image or Plain colour background
