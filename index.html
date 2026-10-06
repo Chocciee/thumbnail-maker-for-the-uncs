@@ -78,15 +78,14 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   </aside>
   <main class="stage">
     <canvas id="cv" width="1280" height="720" aria-label="Thumbnail canvas"></canvas>
-  <section class="card tplwrap" id="tplcard">
+    <p class="hint">1280 × 720. Click to select, drag to move, pull the round handle to resize (text wraps inside its box), double-click text to edit. Delete removes, arrow keys nudge.</p>
+    <p class="hint">Made by Chocciee for my GW2 friends. Feel free to use it! Support, feedback or requests go to me only for those who already know how to find me ^ ^</p>
+    <section class="card tplwrap" id="tplcard">
   <h2>Templates</h2>
   <div class="tplrow" id="tpl"></div>
   <p class="hint">Click a template to load it. This replaces your current layout.</p>
   <div class="btns"><button id="tplx">Save my layout as a template file</button></div>
 </section>
-    <p class="hint">1280 × 720. Click to select, drag to move, pull the round handle to resize (text wraps inside its box), double-click text to edit. Delete removes, arrow keys nudge.</p>
-    <p class="hint">Made by Chocciee for my GW2 friends. Feel free to use it! Support, feedback or requests go to me only for those who already know how to find me ^ ^</p>
-
   </main>
   <aside>
     <div class="card">
@@ -108,7 +107,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
       <div id="tp">
         <label for="tx">Text</label><textarea id="tx"></textarea>
         <label for="fn">Font</label><select id="fn"></select>
-        <label for="sz">Size</label><input type="range" id="sz" min="20" max="400">
+        <label for="sz">Size (px)</label><div style="display:grid;grid-template-columns:1fr 78px;gap:8px;align-items:center"><input type="range" id="sz" min="20" max="400"><input type="number" id="szn" min="8" max="1000" step="1" aria-label="Font size in pixels"></div>
         <div class="row"><div><label for="fc">Fill</label><input type="color" id="fc"></div><div><label for="sc">Outline</label><input type="color" id="sc"></div></div>
         <label for="sw2">Outline width</label><input type="range" id="sw2" min="0" max="30">
         <label for="al">Alignment</label><select id="al"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
@@ -227,11 +226,11 @@ FONTS.forEach(f=>{const o=document.createElement('option');o.value=o.textContent
 function panel(){
   $('props').hidden=!sel;$('fxcard').hidden=!!sel;if(!sel||sel.type!=='img'){eraser=false;eui()}if(!sel)return;$('ip').hidden=sel.type!=='img';
   $('tp').hidden=sel.type!=='text';
-  if(sel.type==='text'){$('tx').value=sel.text;$('fn').value=sel.font;$('sz').value=sel.size;$('fc').value=sel.color;$('sc').value=sel.stroke;$('sw2').value=sel.sw;$('bw').value=sel.bw;$('bh').value=sel.bh;$('al').value=sel.align}
+  if(sel.type==='text'){$('tx').value=sel.text;$('fn').value=sel.font;$('sz').value=sel.size;$('szn').value=Math.round(sel.size);$('fc').value=sel.color;$('sc').value=sel.stroke;$('sw2').value=sel.sw;$('bw').value=sel.bw;$('bh').value=sel.bh;$('al').value=sel.align}
   $('rt').value=sel.rot;$('op').value=sel.op;$('sh').checked=sel.sh;
 }
 const bind=(id,fn)=>$(id).addEventListener('input',()=>{if(sel){fn($(id));draw()}});
-bind('tx',e=>sel.text=e.value||' ');bind('fn',e=>sel.font=e.value);bind('sz',e=>sel.size=+e.value);bind('fc',e=>sel.color=e.value);bind('sc',e=>sel.stroke=e.value);bind('sw2',e=>sel.sw=+e.value);bind('bw',e=>sel.bw=+e.value);bind('bh',e=>sel.bh=+e.value);bind('al',e=>sel.align=e.value);
+bind('tx',e=>sel.text=e.value||' ');bind('fn',e=>sel.font=e.value);bind('sz',e=>{sel.size=+e.value;$('szn').value=Math.round(sel.size)});bind('fc',e=>sel.color=e.value);bind('sc',e=>sel.stroke=e.value);bind('sw2',e=>sel.sw=+e.value);bind('bw',e=>sel.bw=+e.value);bind('bh',e=>sel.bh=+e.value);bind('al',e=>sel.align=e.value);
 bind('rt',e=>sel.rot=+e.value);bind('op',e=>sel.op=+e.value);bind('sh',e=>sel.sh=e.checked);
 /* ---------- background remover ---------- */
 var eraser=false,rmMod=null;
@@ -257,6 +256,7 @@ async function aiRemove(){const it=sel;if(!it||it.type!=='img')return;$('rmai').
 $('rmai').onclick=aiRemove;
 $('rmcol').onclick=()=>{eraser=!eraser;eui()};
 $('rmrest').onclick=()=>{if(sel&&sel.orig){sel.img=sel.orig;sel.orig=null;sel.edited=false;draw();msg('Original restored.')}};
+$('szn').oninput=()=>{const v=+$('szn').value;if(sel&&sel.type==='text'&&v>=8){sel.size=Math.min(1000,v);$('sz').value=sel.size;draw()}};
 $('px').oninput=()=>{if(sel&&$('px').value!==''){sel.x=+$('px').value+dims(sel).w/2;draw()}};
 $('py').oninput=()=>{if(sel&&$('py').value!==''){sel.y=+$('py').value+dims(sel).h/2;draw()}};
 /* ---------- templates ---------- */
