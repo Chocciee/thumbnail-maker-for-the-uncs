@@ -46,6 +46,12 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 #msg,#msg2{font-size:12px;color:var(--muted);min-height:16px;margin-top:6px}
 .chk{display:flex;gap:6px;align-items:center;margin-top:10px;color:var(--ink);font-size:13px}
 @media (max-width:1020px){.app{grid-template-columns:1fr}.stage{order:-1}}
+.tplwrap{margin:0 20px 24px}
+.tplrow{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.tpl{flex:0 0 210px;cursor:pointer;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px;text-align:center}
+.tpl:hover,.tpl:focus-visible{border-color:#6fb86f}
+.tpl canvas{width:100%;height:auto;display:block;border-radius:4px;background:#ccc}
+.tpl span{display:block;margin-top:6px;font-weight:600;font-size:13px}
 </style>
 </head>
 <body>
@@ -116,6 +122,12 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
     </div>
   </aside>
 </div>
+<section class="card tplwrap" id="tplcard">
+  <h2>Templates</h2>
+  <div class="tplrow" id="tpl"></div>
+  <p class="hint">Click a template to load it. This replaces your current layout.</p>
+  <div class="btns"><button id="tplx">Save my layout as a template file</button></div>
+</section>
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
@@ -152,7 +164,7 @@ function dims(it){return it.type==='img'?{w:it.w,h:it.h}:{w:it.bw,h:it.bh}}
 function wrap(it){ctx.font=`${it.size}px "${it.font}"`;const max=it.bw-2*(it.sw+8),out=[];
   it.text.split('\n').forEach(p=>{let line='';p.split(' ').forEach(w=>{const t=line?line+' '+w:w;if(line&&ctx.measureText(t).width>max){out.push(line);line=w}else line=t});out.push(line)});return out}
 function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(im.naturalWidth||200,im.naturalHeight||200);
-  pick(push({type:'img',img:im,w:(im.naturalWidth||200)*k,h:(im.naturalHeight||200)*k}))};im.src=src}
+  pick(push({type:'img',img:im,src,w:(im.naturalWidth||200)*k,h:(im.naturalHeight||200)*k}))};im.src=src}
 function push(o){Object.assign(o,{x:W/2,y:H/2,rot:0,op:100,sh:true},o);items.push(o);return o}
 function addText(){pick(push({type:'text',text:'Your text',font:'Bangers',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
 function pick(it){sel=it;panel();draw()}
@@ -225,7 +237,7 @@ var eraser=false,rmMod=null;
 const msg=t=>{$('rmmsg').textContent=t};
 function eui(){$('rmcol').textContent=eraser?'Stop erasing':'Erase a colour';cv.style.cursor=eraser?'crosshair':'default';if(eraser)msg('Click a colour on the image to erase it. Raise the strength to clear more shades.')}
 function imgToCanvas(it){const c=document.createElement('canvas');c.width=it.img.naturalWidth||Math.round(it.w);c.height=it.img.naturalHeight||Math.round(it.h);c.getContext('2d').drawImage(it.img,0,0,c.width,c.height);return c}
-function useImage(it,src){const im=new Image();im.onload=()=>{it.orig=it.orig||it.img;it.img=im;draw()};im.src=src}
+function useImage(it,src){const im=new Image();im.onload=()=>{it.orig=it.orig||it.img;it.img=im;it.edited=true;draw()};im.src=src}
 function floodClear(d,w,h,sx,sy,tol){const t=tol*2.55,i0=(sy*w+sx)*4,r=d[i0],g=d[i0+1],b=d[i0+2],seen=new Uint8Array(w*h),st=[sy*w+sx];
   while(st.length){const n=st.pop();if(seen[n])continue;seen[n]=1;const i=n*4;
     if(d[i+3]>10&&(Math.abs(d[i]-r)>t||Math.abs(d[i+1]-g)>t||Math.abs(d[i+2]-b)>t))continue;
@@ -243,9 +255,50 @@ async function aiRemove(){const it=sel;if(!it||it.type!=='img')return;$('rmai').
   $('rmai').disabled=false}
 $('rmai').onclick=aiRemove;
 $('rmcol').onclick=()=>{eraser=!eraser;eui()};
-$('rmrest').onclick=()=>{if(sel&&sel.orig){sel.img=sel.orig;sel.orig=null;draw();msg('Original restored.')}};
+$('rmrest').onclick=()=>{if(sel&&sel.orig){sel.img=sel.orig;sel.orig=null;sel.edited=false;draw();msg('Original restored.')}};
 $('px').oninput=()=>{if(sel&&$('px').value!==''){sel.x=+$('px').value+dims(sel).w/2;draw()}};
 $('py').oninput=()=>{if(sel&&$('py').value!==''){sel.y=+$('py').value+dims(sel).h/2;draw()}};
+/* ---------- templates ---------- */
+let TEMPLATES=[];
+const loadImg=src=>new Promise(r=>{const im=new Image();im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src});
+async function buildTemplate(t){
+  const b=t.bg||{},nb={img:null,src:null,color:b.color||'#bdc0c0',fxc:b.fxc||'#2f6bff',dirs:Object.assign({dark:'all',light:'all',col:'all'},b.dirs),fx:Object.assign({vig:0,dark:0,light:0,col:0},b.fx)};
+  if(b.img){nb.img=await loadImg(b.img);nb.src=nb.img?b.img:null}
+  const its=[];
+  for(const o of t.items||[]){
+    const base={rot:0,op:100,sh:true,x:W/2,y:H/2};
+    if(o.type==='img'){const im=await loadImg(o.src);if(!im)continue;its.push(Object.assign(base,{w:200,h:200},o,{img:im}))}
+    else its.push(Object.assign(base,{type:'text',text:'Text',font:'Bangers',size:100,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0},o))}
+  return{items:its,bg:nb}}
+function syncFxUI(){$('bgc').value=bg.color;$('fxc').value=bg.fxc;$('fxv').value=bg.fx.vig;$('fxd').value=bg.fx.dark;$('fxl').value=bg.fx.light;$('fxb').value=bg.fx.col;
+  $('fxdd').value=bg.dirs.dark;$('fxld').value=bg.dirs.light;$('fxcd').value=bg.dirs.col}
+async function applyTemplate(t){
+  if(!confirm('Load "'+t.name+'"? This replaces your current layout.'))return;
+  const r=await buildTemplate(t);items=r.items;bg=r.bg;sel=null;panel();syncFxUI();draw()}
+async function thumb(t,c){
+  const r=await buildTemplate(t),si=items,sb=bg,ss=sel;
+  items=r.items;bg=r.bg;sel=null;draw(false);c.getContext('2d').drawImage(cv,0,0,c.width,c.height);
+  items=si;bg=sb;sel=ss;draw()}
+async function loadTemplates(){
+  try{const idx=await(await fetch('templates/index.json',{cache:'no-cache'})).json();
+    for(const f of idx){try{TEMPLATES.push(await(await fetch('templates/'+encodeURIComponent(f),{cache:'no-cache'})).json())}catch(e){}}}catch(e){}
+  const row=$('tpl');row.innerHTML='';
+  if(!TEMPLATES.length){row.innerHTML='<div class="empty">No templates yet.</div>';return}
+  const cs=TEMPLATES.map(t=>{const d=document.createElement('div');d.className='tpl';d.tabIndex=0;d.setAttribute('role','button');
+    const c=document.createElement('canvas');c.width=320;c.height=180;const n=document.createElement('span');n.textContent=t.name||'Template';
+    d.append(c,n);d.onclick=()=>applyTemplate(t);d.onkeydown=e=>{if(e.key==='Enter')applyTemplate(t)};row.appendChild(d);return c});
+  try{await Promise.all(FONTS.map(f=>document.fonts.load('40px "'+f+'"')))}catch(e){}
+  for(let i=0;i<TEMPLATES.length;i++){try{await thumb(TEMPLATES[i],cs[i])}catch(e){}}}
+$('tplx').onclick=()=>{
+  const name=(prompt('Name for this template?','My template')||'').trim();if(!name)return;
+  let skipped=0;const out={name,bg:{color:bg.color,img:bg.img&&bg.src&&!bg.src.startsWith('data:')?bg.src:null,fxc:bg.fxc,dirs:bg.dirs,fx:bg.fx},items:[]};
+  items.forEach(it=>{const o={};['type','text','font','size','bw','bh','align','color','stroke','sw','w','h','rot','op','sh'].forEach(k=>{if(it[k]!==undefined)o[k]=it[k]});
+    o.x=Math.round(it.x);o.y=Math.round(it.y);
+    if(it.type==='img'){if(!it.src||it.src.startsWith('data:')||it.edited){skipped++;return}o.src=it.src;o.w=Math.round(it.w);o.h=Math.round(it.h)}
+    out.items.push(o)});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));
+  a.download=(name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'template')+'.json';a.click();
+  if(skipped)alert(skipped+' image(s) were left out because they are your own uploads or edited images. Only images from the shared library can be saved in a template.')};
 function del(){items=items.filter(i=>i!==sel);sel=null;panel();draw()}
 $('del').onclick=del;$('addt').onclick=addText;
 $('dup').onclick=()=>{if(!sel)return;const c=Object.assign({},sel,{x:sel.x+30,y:sel.y+30});items.push(c);pick(c)};
@@ -255,7 +308,7 @@ $('bk').onclick=()=>{const i=items.indexOf(sel);if(sel&&i>0){items.splice(i,1);i
 /* ---------- background bank ---------- */
 let bgList=[];try{bgList=JSON.parse(localStorage.getItem('thumb-bgs')||'[]')}catch(e){}
 function saveBgs(){try{localStorage.setItem('thumb-bgs',JSON.stringify(bgList));$('msg2').textContent=''}catch(e){$('msg2').textContent='Could not save to this browser. Your backgrounds will last until you close the page.'}}
-function setBg(src){const im=new Image();im.onload=()=>{bg.img=im;$('msg2').textContent='';draw()};im.onerror=()=>{$('msg2').textContent='That background could not be loaded. Check the file name, and that the file was uploaded to GitHub.'};im.src=src}
+function setBg(src){const im=new Image();im.onload=()=>{bg.img=im;bg.src=src;$('msg2').textContent='';draw()};im.onerror=()=>{$('msg2').textContent='That background could not be loaded. Check the file name, and that the file was uploaded to GitHub.'};im.src=src}
 function renderBgs(){const g=$('bgbank');g.innerHTML='';
   [...SHARED_BG.map(x=>[x,-1]),...bgList.map((x,j)=>[x,j])].forEach(([src,i])=>{const t=document.createElement('div');t.className='t';t.tabIndex=0;t.setAttribute('role','button');t.setAttribute('aria-label','Use as background');
     t.innerHTML=`<img alt="" src="${src}">`;t.firstChild.onerror=()=>{t.style.opacity=.35;t.title='This image could not be loaded'};t.onclick=()=>setBg(src);t.onkeydown=e=>{if(e.key==='Enter')setBg(src)};
@@ -273,7 +326,7 @@ $('bgf').onchange=e=>{[...e.target.files].forEach(f=>shrink(f,1280,d=>{bgList.pu
 $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='thumbnail.png';a.click();sel=keep;draw()},'image/png')};
 
 /* ---------- start ---------- */
-renderBank();renderBgs();loadLibrary();
+renderBank();renderBgs();loadLibrary();loadTemplates();
 const tl=push({type:'text',text:'Enter Class name here',font:'Bangers',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
   tr=push({type:'text',text:'Enter encounter name here',font:'Bangers',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
 function corners(){tl.x=40+tl.bw/2;tl.y=40+tl.bh/2;tr.x=W-40-tr.bw/2;tr.y=40+tr.bh/2}

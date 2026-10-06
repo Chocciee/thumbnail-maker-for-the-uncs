@@ -1,0 +1,49 @@
+{
+  "name": "Two corners",
+  "bg": {
+    "color": "#bdc0c0",
+    "img": null,
+    "fx": {
+      "vig": 0,
+      "dark": 0,
+      "light": 0,
+      "col": 0
+    }
+  },
+  "items": [
+    {
+      "type": "text",
+      "font": "Bangers",
+      "color": "#ffffff",
+      "stroke": "#000000",
+      "sw": 0,
+      "align": "center",
+      "rot": 0,
+      "op": 100,
+      "sh": true,
+      "text": "Enter Class name here",
+      "size": 58,
+      "bw": 480,
+      "bh": 240,
+      "x": 280,
+      "y": 160
+    },
+    {
+      "type": "text",
+      "font": "Bangers",
+      "color": "#ffffff",
+      "stroke": "#000000",
+      "sw": 0,
+      "align": "center",
+      "rot": 0,
+      "op": 100,
+      "sh": true,
+      "text": "Enter encounter name here",
+      "size": 96,
+      "bw": 640,
+      "bh": 320,
+      "x": 920,
+      "y": 200
+    }
+  ]
+}
