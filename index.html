@@ -58,6 +58,13 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
       <div class="bank wide" id="bgbank"></div>
       <div class="btns"><button class="pri" id="bgup">Add my own backgrounds</button><button id="bgclr">Use plain colour</button></div>
       <input type="file" id="bgf" accept="image/*" multiple hidden>
+      <h2 style="margin-top:14px">Background effects</h2>
+      <label for="fxv">Vignette</label><input type="range" id="fxv" min="0" max="100" value="0">
+      <label for="fxd">Fade darker</label><input type="range" id="fxd" min="0" max="100" value="0">
+      <label for="fxl">Fade lighter</label><input type="range" id="fxl" min="0" max="100" value="0">
+      <label for="fxb">Fade blue</label><input type="range" id="fxb" min="0" max="100" value="0">
+      <label for="fxdir">Fade covers</label><select id="fxdir"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select>
+      <div class="btns"><button id="fxreset">Reset effects</button></div>
       <div id="msg2"></div>
     </div>
     <div class="card">
@@ -90,6 +97,12 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
         <label for="bw">Box width</label><input type="range" id="bw" min="60" max="1280">
         <label for="bh">Box height</label><input type="range" id="bh" min="30" max="720">
       </div>
+      <div id="ip" hidden>
+        <button class="pri" id="rmai" style="width:100%">Remove background</button>
+        <label for="tol">Colour eraser strength</label><input type="range" id="tol" min="1" max="100" value="25">
+        <div class="btns"><button id="rmcol">Erase a colour</button><button id="rmrest">Restore original</button></div>
+        <p class="hint" id="rmmsg"></p>
+      </div>
       <label for="rt">Rotation</label><input type="range" id="rt" min="-180" max="180">
       <label for="op">Opacity</label><input type="range" id="op" min="10" max="100">
       <label class="chk"><input type="checkbox" id="sh"> Drop shadow</label>
@@ -100,7 +113,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
-let items=[],sel=null,bg={img:null,color:'#bdc0c0'};
+let items=[],sel=null,bg={img:null,color:'#bdc0c0',dir:'all',fx:{vig:0,dark:0,light:0,blue:0}};
 
 /* ---------- bank ---------- */
 let BUILT={},SHARED_BG=[];
@@ -151,7 +164,13 @@ function draw(ui=true){
     ctx.setLineDash([10,7]);ctx.lineWidth=3;ctx.strokeStyle='#00a8ff';ctx.strokeRect(-w/2,-h/2,w,h);ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(w/2,h/2,13,0,7);ctx.fillStyle='#00a8ff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();ctx.restore()}
 }
-function drawBg(){ctx.fillStyle=bg.color;ctx.fillRect(0,0,W,H);const im=bg.img;if(im){const k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;ctx.drawImage(im,(W-w)/2,(H-h)/2,w,h)}}
+function tint(r,g,b,a){if(a<=0)return;const c=`rgba(${r},${g},${b},`;
+  if(bg.dir==='all')ctx.fillStyle=c+a+')';
+  else{const v={bottom:[0,H,0,0],top:[0,0,0,H],left:[0,0,W,0],right:[W,0,0,0]}[bg.dir],gr=ctx.createLinearGradient(...v);gr.addColorStop(0,c+a+')');gr.addColorStop(1,c+'0)');ctx.fillStyle=gr}
+  ctx.fillRect(0,0,W,H)}
+function applyFx(){const f=bg.fx;tint(0,0,0,f.dark/100*.85);tint(255,255,255,f.light/100*.85);tint(40,110,255,f.blue/100*.65);
+  if(f.vig>0){const g=ctx.createRadialGradient(W/2,H/2,H*.28,W/2,H/2,Math.hypot(W,H)/2);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${f.vig/100*.95})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}}
+function drawBg(){ctx.fillStyle=bg.color;ctx.fillRect(0,0,W,H);const im=bg.img;if(im){const k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;ctx.drawImage(im,(W-w)/2,(H-h)/2,w,h)}applyFx()}
 
 /* ---------- interaction ---------- */
 const pt=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*W/r.width}};
@@ -159,6 +178,7 @@ const loc=(it,p)=>{const a=-it.rot*Math.PI/180,dx=p.x-it.x,dy=p.y-it.y;return{x:
 let drag=null;
 cv.onpointerdown=e=>{
   const p=pt(e);
+  if(eraser&&sel&&sel.type==='img'){const l=loc(sel,p);if(Math.abs(l.x)<=sel.w/2&&Math.abs(l.y)<=sel.h/2){eraseAt(l);return}}
   if(sel){const l=loc(sel,p),d=dims(sel);if(Math.hypot(l.x-d.w/2,l.y-d.h/2)<26){drag={m:'size',r0:Math.hypot(p.x-sel.x,p.y-sel.y),w:sel.w,h:sel.h,s:sel.size};cv.setPointerCapture(e.pointerId);return}}
   let hit=null;
   for(let i=items.length-1;i>=0;i--){const it=items[i],l=loc(it,p),d=dims(it);if(Math.abs(l.x)<=d.w/2&&Math.abs(l.y)<=d.h/2){hit=it;break}}
@@ -182,7 +202,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- panel ---------- */
 FONTS.forEach(f=>{const o=document.createElement('option');o.value=o.textContent=f;o.style.fontFamily=f;$('fn').appendChild(o)});
 function panel(){
-  $('props').hidden=!sel;if(!sel)return;
+  $('props').hidden=!sel;if(!sel||sel.type!=='img'){eraser=false;eui()}if(!sel)return;$('ip').hidden=sel.type!=='img';
   $('tp').hidden=sel.type!=='text';
   if(sel.type==='text'){$('tx').value=sel.text;$('fn').value=sel.font;$('sz').value=sel.size;$('fc').value=sel.color;$('sc').value=sel.stroke;$('sw2').value=sel.sw;$('bw').value=sel.bw;$('bh').value=sel.bh;$('al').value=sel.align}
   $('rt').value=sel.rot;$('op').value=sel.op;$('sh').checked=sel.sh;
@@ -190,6 +210,30 @@ function panel(){
 const bind=(id,fn)=>$(id).addEventListener('input',()=>{if(sel){fn($(id));draw()}});
 bind('tx',e=>sel.text=e.value||' ');bind('fn',e=>sel.font=e.value);bind('sz',e=>sel.size=+e.value);bind('fc',e=>sel.color=e.value);bind('sc',e=>sel.stroke=e.value);bind('sw2',e=>sel.sw=+e.value);bind('bw',e=>sel.bw=+e.value);bind('bh',e=>sel.bh=+e.value);bind('al',e=>sel.align=e.value);
 bind('rt',e=>sel.rot=+e.value);bind('op',e=>sel.op=+e.value);bind('sh',e=>sel.sh=e.checked);
+/* ---------- background remover ---------- */
+var eraser=false,rmMod=null;
+const msg=t=>{$('rmmsg').textContent=t};
+function eui(){$('rmcol').textContent=eraser?'Stop erasing':'Erase a colour';cv.style.cursor=eraser?'crosshair':'default';if(eraser)msg('Click a colour on the image to erase it. Raise the strength to clear more shades.')}
+function imgToCanvas(it){const c=document.createElement('canvas');c.width=it.img.naturalWidth||Math.round(it.w);c.height=it.img.naturalHeight||Math.round(it.h);c.getContext('2d').drawImage(it.img,0,0,c.width,c.height);return c}
+function useImage(it,src){const im=new Image();im.onload=()=>{it.orig=it.orig||it.img;it.img=im;draw()};im.src=src}
+function floodClear(d,w,h,sx,sy,tol){const t=tol*2.55,i0=(sy*w+sx)*4,r=d[i0],g=d[i0+1],b=d[i0+2],seen=new Uint8Array(w*h),st=[sy*w+sx];
+  while(st.length){const n=st.pop();if(seen[n])continue;seen[n]=1;const i=n*4;
+    if(d[i+3]>10&&(Math.abs(d[i]-r)>t||Math.abs(d[i+1]-g)>t||Math.abs(d[i+2]-b)>t))continue;
+    d[i+3]=0;const x=n%w,y=(n-x)/w;if(x>0)st.push(n-1);if(x<w-1)st.push(n+1);if(y>0)st.push(n-w);if(y<h-1)st.push(n+w)}}
+function eraseAt(l){const it=sel,c=imgToCanvas(it),cx=c.getContext('2d');
+  try{const id=cx.getImageData(0,0,c.width,c.height),x=Math.min(c.width-1,Math.max(0,Math.floor((l.x/it.w+.5)*c.width))),y=Math.min(c.height-1,Math.max(0,Math.floor((l.y/it.h+.5)*c.height)));
+    if(id.data[(y*c.width+x)*4+3]<10)return;floodClear(id.data,c.width,c.height,x,y,+$('tol').value);cx.putImageData(id,0,0);useImage(it,c.toDataURL('image/png'))}
+  catch(e){msg("This image can't be edited.")}}
+async function aiRemove(){const it=sel;if(!it||it.type!=='img')return;$('rmai').disabled=true;
+  msg('Working on it. The first use downloads the remover, which can take a minute.');
+  try{rmMod=rmMod||await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm');
+    const fn=rmMod.removeBackground||rmMod.default,blob=await new Promise(r=>imgToCanvas(it).toBlob(r,'image/png')),out=await fn(blob);
+    useImage(it,URL.createObjectURL(out));msg('Background removed. Use Restore original to undo.')}
+  catch(e){msg('The automatic remover could not load. Check your connection, or use Erase a colour instead.')}
+  $('rmai').disabled=false}
+$('rmai').onclick=aiRemove;
+$('rmcol').onclick=()=>{eraser=!eraser;eui()};
+$('rmrest').onclick=()=>{if(sel&&sel.orig){sel.img=sel.orig;sel.orig=null;draw();msg('Original restored.')}};
 function del(){items=items.filter(i=>i!==sel);sel=null;panel();draw()}
 $('del').onclick=del;$('addt').onclick=addText;
 $('dup').onclick=()=>{if(!sel)return;const c=Object.assign({},sel,{x:sel.x+30,y:sel.y+30});items.push(c);pick(c)};
@@ -207,6 +251,9 @@ function renderBgs(){const g=$('bgbank');g.innerHTML='';
   if(!bgList.length&&!SHARED_BG.length)g.innerHTML='<div class="empty">Nothing here yet. Add background images to use them.</div>'}
 $('bgup').onclick=()=>$('bgf').click();
 $('bgclr').onclick=()=>{bg.img=null;draw()};
+[['fxv','vig'],['fxd','dark'],['fxl','light'],['fxb','blue']].forEach(([id,k])=>$(id).oninput=e=>{bg.fx[k]=+e.target.value;draw()});
+$('fxdir').oninput=e=>{bg.dir=e.target.value;draw()};
+$('fxreset').onclick=()=>{bg.fx={vig:0,dark:0,light:0,blue:0};bg.dir='all';['fxv','fxd','fxl','fxb'].forEach(i=>$(i).value=0);$('fxdir').value='all';draw()};
 $('bgc').oninput=e=>{bg.color=e.target.value;bg.img=null;draw()};
 $('bgf').onchange=e=>{[...e.target.files].forEach(f=>shrink(f,1280,d=>{bgList.push(d);saveBgs();renderBgs();setBg(d)}));e.target.value=''};
 
