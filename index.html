@@ -54,17 +54,10 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   <aside>
     <div class="card">
       <h2>Background</h2>
-      <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#bdc0c0" style="margin-bottom:10px">
+      <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#262b38" style="margin-bottom:10px">
       <div class="bank wide" id="bgbank"></div>
       <div class="btns"><button class="pri" id="bgup">Add my own backgrounds</button><button id="bgclr">Use plain colour</button></div>
       <input type="file" id="bgf" accept="image/*" multiple hidden>
-      <h2 style="margin-top:14px">Background effects</h2>
-      <label for="fxv">Vignette</label><input type="range" id="fxv" min="0" max="100" value="0">
-      <label for="fxd">Fade darker</label><input type="range" id="fxd" min="0" max="100" value="0">
-      <label for="fxl">Fade lighter</label><input type="range" id="fxl" min="0" max="100" value="0">
-      <label for="fxb">Fade blue</label><input type="range" id="fxb" min="0" max="100" value="0">
-      <label for="fxdir">Fade covers</label><select id="fxdir"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select>
-      <div class="btns"><button id="fxreset">Reset effects</button></div>
       <div id="msg2"></div>
     </div>
     <div class="card">
@@ -86,6 +79,15 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
   <aside>
     <div class="card">
       <button class="pri" id="addt" style="width:100%">Add text box</button>
+    </div>
+    <div class="card" id="fxcard">
+      <h2>Background effects</h2>
+      <label for="fxv">Vignette</label><input type="range" id="fxv" min="0" max="100" value="0">
+      <label for="fxd">Fade darker</label><input type="range" id="fxd" min="0" max="100" value="0">
+      <label for="fxl">Fade lighter</label><input type="range" id="fxl" min="0" max="100" value="0">
+      <label for="fxb">Fade blue</label><input type="range" id="fxb" min="0" max="100" value="0">
+      <label for="fxdir">Fade covers</label><select id="fxdir"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select>
+      <div class="btns"><button id="fxreset">Reset effects</button></div>
     </div>
     <div class="card" id="props" hidden>
       <h2>Selected</h2>
@@ -115,13 +117,12 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
-let items=[],sel=null,bg={img:null,color:'#bdc0c0',dir:'all',fx:{vig:0,dark:0,light:0,blue:0}};
+let items=[],sel=null,bg={img:null,color:'#262b38',dir:'all',fx:{vig:0,dark:0,light:0,blue:0}};
 
 /* ---------- bank ---------- */
 let BUILT={},SHARED_BG=[];
 async function loadLibrary(){try{const r=await fetch('bank/manifest.json',{cache:'no-cache'}),m=await r.json();
   SHARED_BG=(m.backgrounds||[]).map(p=>p.split('/').map(encodeURIComponent).join('/'));BUILT=Object.fromEntries(Object.entries(m.images||{}).map(([k,v])=>[k,v.map(p=>p.split('/').map(encodeURIComponent).join('/'))]));
-  if(SHARED_BG.length)setBg('bank/backgrounds/untamed.png');
   if(!BUILT[cat])cat=Object.keys(BUILT)[0]||'My uploads'}catch(e){}renderBank();renderBgs()}
 let user={'My uploads':[]},cat='My uploads',store=true;
 try{const s=localStorage.getItem('thumb-bank');if(s)user=Object.assign(user,JSON.parse(s))}catch(e){}
@@ -149,7 +150,7 @@ function wrap(it){ctx.font=`${it.size}px "${it.font}"`;const max=it.bw-2*(it.sw+
 function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(im.naturalWidth||200,im.naturalHeight||200);
   pick(push({type:'img',img:im,w:(im.naturalWidth||200)*k,h:(im.naturalHeight||200)*k}))};im.src=src}
 function push(o){Object.assign(o,{x:W/2,y:H/2,rot:0,op:100,sh:true},o);items.push(o);return o}
-function addText(){pick(push({type:'text',text:'Your text',font:'Bangers',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
+function addText(){pick(push({type:'text',text:'Your text',font:'Lilita One',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
 function pick(it){sel=it;panel();draw()}
 function draw(ui=true){
   ctx.clearRect(0,0,W,H);drawBg();
@@ -205,7 +206,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- panel ---------- */
 FONTS.forEach(f=>{const o=document.createElement('option');o.value=o.textContent=f;o.style.fontFamily=f;$('fn').appendChild(o)});
 function panel(){
-  $('props').hidden=!sel;if(!sel||sel.type!=='img'){eraser=false;eui()}if(!sel)return;$('ip').hidden=sel.type!=='img';
+  $('props').hidden=!sel;$('fxcard').hidden=!!sel;if(!sel||sel.type!=='img'){eraser=false;eui()}if(!sel)return;$('ip').hidden=sel.type!=='img';
   $('tp').hidden=sel.type!=='text';
   if(sel.type==='text'){$('tx').value=sel.text;$('fn').value=sel.font;$('sz').value=sel.size;$('fc').value=sel.color;$('sc').value=sel.stroke;$('sw2').value=sel.sw;$('bw').value=sel.bw;$('bh').value=sel.bh;$('al').value=sel.align}
   $('rt').value=sel.rot;$('op').value=sel.op;$('sh').checked=sel.sh;
@@ -264,8 +265,8 @@ $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=d
 
 /* ---------- start ---------- */
 renderBank();renderBgs();loadLibrary();
-const tl=push({type:'text',text:'Enter Class name here',font:'Bangers',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
-  tr=push({type:'text',text:'Enter encounter name here',font:'Bangers',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
+const tl=push({type:'text',text:'Enter Class name here',font:'Lilita One',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
+  tr=push({type:'text',text:'Enter encounter name here',font:'Lilita One',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
 function corners(){tl.x=40+tl.bw/2;tl.y=40+tl.bh/2;tr.x=W-40-tr.bw/2;tr.y=40+tr.bh/2}
 corners();draw();
 Promise.all(FONTS.map(f=>document.fonts.load(`40px "${f}"`))).then(()=>{corners();draw()}).catch(()=>{});
