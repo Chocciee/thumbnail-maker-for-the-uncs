@@ -1,0 +1,55 @@
+{
+  "name": "Barti's Template",
+  "bg": {
+    "color": "#bdc0c0",
+    "img": "bank/backgrounds/1920px-Nexus_of_Eternity_loading_screen.png",
+    "fxc": "#2f6bff",
+    "dirs": {
+      "dark": "bottom",
+      "light": "all",
+      "col": "all"
+    },
+      "fx": {
+      "vig": 35,
+      "dark": 45,
+      "light": 0,
+      "col": 0
+    }
+  },
+  "items": [
+    {
+      "type": "text",
+      "font": "Bebas Neue",
+      "color": "#ffffff",
+      "stroke": "#000000",
+      "sw": 0,
+      "align": "center",
+      "rot": 0,
+      "op": 100,
+      "sh": true,
+      "text": "Enter Class name here",
+      "size": 60,
+      "bw": 1280,
+      "bh": 30,
+      "x": 0,
+      "y": 550
+    },
+    {
+      "type": "text",
+      "font": "Bebas Neue",
+      "color": "#ffffff",
+      "stroke": "#000000",
+      "sw": 0,
+      "align": "center",
+      "rot": 0,
+      "op": 100,
+      "sh": true,
+      "text": "Enter encounter name here",
+      "size": 210,
+      "bw": 1200,
+      "bh": 30,
+      "x": 0,
+      "y": 160
+    }
+  ]
+}
