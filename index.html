@@ -3,18 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Thumbnail Studio</title>
+<title>Chocciee's Thumbnail Maker</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Montserrat:wght@900&family=Permanent+Marker&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#eceae4;--panel:#fff;--ink:#1b1d24;--muted:#6a6e7a;--line:#d8d5cc;--acc:#ffc933;--accink:#1b1d24;--field:#f5f4ef;
+:root{color-scheme:light;--bg:#f4faf4;--panel:#fff;--ink:#1f2a1f;--muted:#5f7060;--line:#d5e6d5;--acc:#abdcab;--accink:#1f3a1f;--field:#f3f9f3;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171a22;--panel:#222733;--ink:#eef0f5;--muted:#9aa0b0;--line:#363c4c;--field:#2b3141}}
-:root[data-theme="dark"]{--bg:#171a22;--panel:#222733;--ink:#eef0f5;--muted:#9aa0b0;--line:#363c4c;--field:#2b3141}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 Inter,system-ui,sans-serif}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px}
-h1{font:400 28px Anton,Impact,sans-serif;letter-spacing:.5px;margin:0}
+h1{font:400 32px Bangers,Impact,sans-serif;letter-spacing:1px;margin:0}
 h2{font-size:13px;font-weight:600;margin:0 0 10px}
 .app{display:grid;grid-template-columns:300px minmax(0,1fr) 280px;gap:16px;padding:0 20px 24px;align-items:start}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -29,7 +27,7 @@ button.pri{background:var(--acc);color:var(--accink);border-color:var(--acc);fon
 input[type=text],select,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 8px}
 textarea{resize:vertical;min-height:58px}
 input[type=color]{width:100%;height:32px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--field)}
-input[type=range]{width:100%;accent-color:#e5a800}
+input[type=range]{width:100%;accent-color:#6fb86f}
 label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -51,7 +49,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 </style>
 </head>
 <body>
-<header><h1>Thumbnail Studio</h1><button class="pri" id="dl">Download PNG</button></header>
+<header><h1>Chocciee's Thumbnail Maker</h1><button class="pri" id="dl">Download PNG</button></header>
 <div class="app">
   <aside>
     <div class="card">
@@ -133,7 +131,7 @@ function dims(it){
 function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(im.naturalWidth||200,im.naturalHeight||200);
   pick(push({type:'img',img:im,w:(im.naturalWidth||200)*k,h:(im.naturalHeight||200)*k}))};im.src=src}
 function push(o){Object.assign(o,{x:W/2,y:H/2,rot:0,op:100,sh:true},o);items.push(o);return o}
-function addText(){pick(push({type:'text',text:'YOUR TEXT',font:'Anton',size:140,color:'#ffffff',stroke:'#000000',sw:10}))}
+function addText(){pick(push({type:'text',text:'YOUR TEXT',font:'Bangers',size:140,color:'#ffffff',stroke:'#000000',sw:0}))}
 function pick(it){sel=it;panel();draw()}
 function draw(ui=true){
   ctx.clearRect(0,0,W,H);drawBg();
@@ -211,9 +209,11 @@ $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=d
 
 /* ---------- start ---------- */
 renderBank();renderBgs();loadLibrary();
-push({type:'text',text:"YOU WON'T\nBELIEVE THIS",font:'Anton',size:150,color:'#ffffff',stroke:'#000000',sw:12,x:400,y:360,rot:-4});
-draw();
-Promise.all(FONTS.map(f=>document.fonts.load(`40px "${f}"`))).then(()=>draw()).catch(()=>{});
+const tl=push({type:'text',text:'Enter Class name here',font:'Bangers',size:58,color:'#ffffff',stroke:'#000000',sw:0}),
+  tr=push({type:'text',text:'Enter encounter name here',font:'Bangers',size:96,color:'#ffffff',stroke:'#000000',sw:0});
+function corners(){let d=dims(tl);tl.x=40+d.w/2;tl.y=40+d.h/2;d=dims(tr);tr.x=W-40-d.w/2;tr.y=40+d.h/2}
+corners();draw();
+Promise.all(FONTS.map(f=>document.fonts.load(`40px "${f}"`))).then(()=>{corners();draw()}).catch(()=>{});
 </script>
 </body>
 </html>
