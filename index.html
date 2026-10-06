@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chocciee's Thumbnail Maker</title>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Montserrat:wght@900&family=Permanent+Marker&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Lilita+One&family=Fredoka:wght@600&family=Bebas+Neue&family=Montserrat:wght@900&family=Permanent+Marker&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:light;--bg:#f4faf4;--panel:#fff;--ink:#1f2a1f;--muted:#5f7060;--line:#d5e6d5;--acc:#abdcab;--accink:#1f3a1f;--field:#f3f9f3;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -12,7 +12,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 Inter,system-ui,sans-serif}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px}
-h1{font:400 32px Bangers,Impact,sans-serif;letter-spacing:1px;margin:0}
+h1{font:400 32px 'Lilita One',Impact,sans-serif;letter-spacing:1px;margin:0}
 h2{font-size:13px;font-weight:600;margin:0 0 10px}
 .app{display:grid;grid-template-columns:300px minmax(0,1fr) 280px;gap:16px;padding:0 20px 24px;align-items:start}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -84,7 +84,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
         <label for="fn">Font</label><select id="fn"></select>
         <label for="sz">Size</label><input type="range" id="sz" min="20" max="400">
         <div class="row"><div><label for="fc">Fill</label><input type="color" id="fc"></div><div><label for="sc">Outline</label><input type="color" id="sc"></div></div>
-        <label for="sw2">Outline width</label>\1
+        <label for="sw2">Outline width</label><input type="range" id="sw2" min="0" max="30">
         <label for="al">Alignment</label><select id="al"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
         <label for="bw">Box width</label><input type="range" id="bw" min="60" max="1280">
         <label for="bh">Box height</label><input type="range" id="bh" min="30" max="720">
@@ -98,7 +98,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 </div>
 <script>
 const W=1280,H=720,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
-const FONTS=['Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
+const FONTS=['Lilita One','Fredoka','Anton','Bebas Neue','Bangers','Montserrat','Permanent Marker','Inter'];
 let items=[],sel=null,bg={img:null};
 
 /* ---------- bank ---------- */
@@ -132,7 +132,7 @@ function wrap(it){ctx.font=`${it.size}px "${it.font}"`;const max=it.bw-2*(it.sw+
 function addImage(src){const im=new Image();im.onload=()=>{const k=340/Math.max(im.naturalWidth||200,im.naturalHeight||200);
   pick(push({type:'img',img:im,w:(im.naturalWidth||200)*k,h:(im.naturalHeight||200)*k}))};im.src=src}
 function push(o){Object.assign(o,{x:W/2,y:H/2,rot:0,op:100,sh:true},o);items.push(o);return o}
-function addText(){pick(push({type:'text',text:'YOUR TEXT',font:'Bangers',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
+function addText(){pick(push({type:'text',text:'Your text',font:'Lilita One',size:140,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0}))}
 function pick(it){sel=it;panel();draw()}
 function draw(ui=true){
   ctx.clearRect(0,0,W,H);drawBg();
@@ -212,8 +212,8 @@ $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=d
 
 /* ---------- start ---------- */
 renderBank();renderBgs();loadLibrary();
-const tl=push({type:'text',text:'Enter Class name here',font:'Bangers',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
-  tr=push({type:'text',text:'Enter encounter name here',font:'Bangers',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
+const tl=push({type:'text',text:'Enter Class name here',font:'Lilita One',size:58,bw:480,bh:240,align:'center',color:'#ffffff',stroke:'#000000',sw:0}),
+  tr=push({type:'text',text:'Enter encounter name here',font:'Lilita One',size:96,bw:640,bh:320,align:'center',color:'#ffffff',stroke:'#000000',sw:0});
 function corners(){tl.x=40+tl.bw/2;tl.y=40+tl.bh/2;tr.x=W-40-tr.bw/2;tr.y=40+tr.bh/2}
 corners();draw();
 Promise.all(FONTS.map(f=>document.fonts.load(`40px "${f}"`))).then(()=>{corners();draw()}).catch(()=>{});
