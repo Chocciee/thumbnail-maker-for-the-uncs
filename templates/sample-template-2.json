@@ -2,7 +2,7 @@
   "name": "Sample Template 2",
   "bg": {
     "color": "#bdc0c0",
-    "img": "bank/backgrounds/1920px-Nexus_of_Eternity_loading_screen.jpg",
+    "img": "bank/backgrounds/1920px-Nexus_of_Eternity_loading_screen.png",
     "fxc": "#2f6bff",
     "dirs": {
       "dark": "bottom",
