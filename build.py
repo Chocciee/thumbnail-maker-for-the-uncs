@@ -1,12 +1,136 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Chocciee&#x27;s Thumbnail Maker</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Lilita+One&family=Fredoka:wght@600&family=Anton&family=Bebas+Neue&family=Bangers&family=Montserrat:wght@900&family=Permanent+Marker&display=swap" rel="stylesheet">
-<style>
-:root{color-scheme:light;--bg:#f4faf4;--panel:#ffffff;--ink:#1f2a1f;--muted:#5f7060;--line:#d5e6d5;--acc:#abdcab;--accink:#1f3a1f;--field:#f3f9f3;--acc2:#6fb86f;
+#!/usr/bin/env python3
+"""
+build.py  -  generates index.html for Chocciee's Thumbnail Maker.
+
+    python3 build.py        (writes index.html next to this file)
+
+WHERE TO CHANGE THINGS (everything is in this one file)
+  1. SETTINGS   title, canvas size, fonts, colours, starter and default text boxes
+  2. PANEL      the "Selected" panel on the right. Add one P(...) line and a new
+                control appears AND is wired to the selected item automatically
+                (it is also saved in template files).
+  3. EXTRA_*    your own CSS / HTML / JavaScript (examples at the very bottom)
+
+The browser can only run JavaScript, so brand-new behaviour (new drawing
+effects and so on) goes into EXTRA_JS. Python builds everything around it.
+"""
+import html as _html
+import json
+import os
+
+# =====================================================================
+# 1. SETTINGS
+# =====================================================================
+TITLE = "Chocciee's Thumbnail Maker"
+DISCLAIMER = ("Made by Chocciee for my GW2 friends. Feel free to use it! Support, "
+              "feedback or requests go to me only for those who already know how to find me ^ ^")
+CANVAS = (1280, 720)
+BG_COLOR = "#bdc0c0"          # default plain background colour
+FADE_COLOUR = "#2f6bff"       # starting colour for "Fade a colour"
+
+# Fonts shown in the Font menu (loaded from Google Fonts).
+FONTS = ["Lilita One", "Fredoka", "Anton", "Bebas Neue", "Bangers",
+         "Montserrat", "Permanent Marker", "Inter"]
+# Google Fonts names that need a special form. Unknown fonts just use their own name.
+FONT_SOURCES = {"Montserrat": "Montserrat:wght@900", "Inter": "Inter:wght@400;600",
+                "Fredoka": "Fredoka:wght@600"}
+
+THEME = {            # page colours (CSS variables)
+    "bg": "#f4faf4", "panel": "#ffffff", "ink": "#1f2a1f", "muted": "#5f7060",
+    "line": "#d5e6d5", "acc": "#abdcab", "accink": "#1f3a1f", "field": "#f3f9f3",
+    "acc2": "#6fb86f",
+}
+
+# Defaults for the "Add text box" button (and for template text boxes missing a value).
+NEW_TEXT = dict(text="Your text", font="Bangers", size=140, bw=640, bh=320,
+                align="center", color="#ffffff", stroke="#000000", sw=0)
+
+
+def corner(text, size, bw, bh, side, margin=40):
+    """A starter text box sitting in the top-left or top-right corner."""
+    x = margin + bw / 2 if side == "left" else CANVAS[0] - margin - bw / 2
+    return dict(text=text, size=size, bw=bw, bh=bh, x=x, y=margin + bh / 2)
+
+
+# Text boxes present when the page opens (add or remove lines freely).
+STARTER = [
+    corner("Enter Class name here", 58, 480, 240, "left"),
+    corner("Enter encounter name here", 96, 640, 320, "right"),
+]
+
+# =====================================================================
+# 2. PANEL  (the "Selected" box on the right)
+#    P(id, property, label, kind, applies_to, ...options)
+#      kind:  range | color | select | checkbox | textarea | text
+#      options: min, max, box=dict(id, min, max) (adds a number box next to a
+#               slider), options=[(value, label)] or "fonts", row="name" (controls
+#               with the same row name share one line), nonempty=True
+# =====================================================================
+TEXT, DRAW, IMG = ["text"], ["draw"], ["img"]
+ANY = ["text", "img", "draw"]
+ALIGN = [("left", "Left"), ("center", "Centre"), ("right", "Right")]
+
+
+def P(id, key, label, kind, applies, **kw):
+    return dict(id=id, key=key, label=label, kind=kind, applies=applies, **kw)
+
+
+def RAW(html, applies):
+    return dict(raw=html, applies=applies)
+
+
+POSITION_HTML = ('<div class="row"><div><label for="px">X position (px)</label><input type="number" id="px" step="1"></div>'
+                 '<div><label for="py">Y position (px)</label><input type="number" id="py" step="1"></div></div>')
+IMAGE_TOOLS_HTML = '''
+        <button class="pri" id="rmai" style="width:100%">Remove background</button>
+        <label for="tol">Colour eraser strength</label><input type="range" id="tol" min="1" max="100" value="25">
+        <div class="btns"><button id="rmcol">Erase a colour</button><button id="rmrest">Restore original</button></div>
+        <p class="hint" id="rmmsg"></p>
+      '''
+BUTTONS_HTML = ('<div class="btns"><button id="dup">Duplicate</button><button id="fr">Bring forward</button>'
+                '<button id="bk">Send back</button><button id="del">Delete</button></div>')
+
+PANEL = [
+    P("tx",   "text",   "Text",          "textarea", TEXT, nonempty=True),
+    P("fn",   "font",   "Font",          "select",   TEXT, options="fonts"),
+    P("sz",   "size",   "Size (px)",     "range",    TEXT, min=20, max=400, box=dict(id="szn", min=8, max=1000)),
+    P("fc",   "color",  "Fill",          "color",    TEXT, row="fill"),
+    P("sc",   "stroke", "Outline",       "color",    TEXT, row="fill"),
+    P("sw2",  "sw",     "Outline width", "range",    TEXT, min=0, max=30),
+    P("al",   "align",  "Alignment",     "select",   TEXT, options=ALIGN),
+    P("bw",   "bw",     "Box width",     "range",    TEXT, min=60, max=CANVAS[0]),
+    P("bh",   "bh",     "Box height",    "range",    TEXT, min=30, max=CANVAS[1]),
+    P("dcol", "color",  "Colour",        "color",    DRAW, row="draw"),
+    P("dlw",  "lw",     "Line width",    "range",    DRAW, min=1, max=60, row="draw"),
+    P("dfill", "fill",  "Fill shape",    "checkbox", DRAW),
+    RAW(POSITION_HTML, ANY),
+    RAW(IMAGE_TOOLS_HTML, IMG),
+    P("rt",   "rot",    "Rotation",      "range",    ANY, min=-180, max=180),
+    P("op",   "op",     "Opacity",       "range",    ANY, min=10, max=100),
+    P("sh",   "sh",     "Drop shadow",   "checkbox", ANY),
+    RAW(BUTTONS_HTML, ANY),
+]
+
+# =====================================================================
+# 3. EXTRA hooks - put your own additions here
+# =====================================================================
+EXTRA_CSS = ""
+EXTRA_LEFT_HTML = ""     # extra cards in the left column
+EXTRA_RIGHT_HTML = ""    # extra cards in the right column (above "Selected")
+EXTRA_MAIN_HTML = ""     # extra content under the templates strip
+EXTRA_JS = ""            # runs after the core code and before the page starts
+
+# --- Example: a "Centre it" button in the right column --------------------
+# EXTRA_RIGHT_HTML = '<div class="card"><button id="centre" style="width:100%">Centre selected item</button></div>'
+# EXTRA_JS = "$('centre').onclick = () => { if (sel) { sel.x = W/2; sel.y = H/2; draw(); } };"
+# --- Example: a new text property (shows up in the panel and in templates) -
+# PANEL.insert(8, P("tr", "tracking", "Letter spacing", "range", TEXT, min=0, max=40))
+#   (then use it in JS: items have it as  it.tracking )
+
+# =====================================================================
+# Page pieces (long HTML / CSS / JS blocks). Edit freely.
+# =====================================================================
+CSS = r''':root{color-scheme:light;/*THEME*/
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
@@ -52,15 +176,9 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
 .tpl:hover,.tpl:focus-visible{border-color:var(--acc2)}
 .tpl canvas{width:100%;height:auto;display:block;border-radius:4px;background:#ccc}
 .tpl span{display:block;margin-top:6px;font-weight:600;font-size:13px}
+'''
 
-
-</style>
-</head>
-<body>
-<header><h1>Chocciee&#x27;s Thumbnail Maker</h1><button class="pri" id="dl">Download PNG</button></header>
-<div class="app">
-  <aside>
-        <div class="card">
+LEFT_HTML = r'''    <div class="card">
       <h2>Background</h2>
       <label for="bgc">Plain colour</label><input type="color" id="bgc" value="#bdc0c0" style="margin-bottom:10px">
       <div class="bank wide" id="bgbank"></div>
@@ -85,26 +203,9 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
         <p class="hint">Pick a tool, then drag on the picture. Every drawing is its own object: choose Select to move, resize, recolour or delete it.</p>
       </div>
     </div>
+'''
 
-    
-  </aside>
-  <main class="stage">
-    <canvas id="cv" width="1280" height="720" aria-label="Thumbnail canvas"></canvas>
-    <p class="hint">1280 × 720. Click to select, drag to move, pull the round handle to resize (text wraps inside its box), double-click text to edit. Delete removes, arrow keys nudge.</p>
-    <p class="hint">Made by Chocciee for my GW2 friends. Feel free to use it! Support, feedback or requests go to me only for those who already know how to find me ^ ^</p>
-    <section class="card tplwrap" id="tplcard">
-  <h2>Templates</h2>
-  <div class="tplrow" id="tpl"></div>
-  <p class="hint">Click a template to load it. This replaces your current layout.</p>
-  <div class="btns"><button id="tplf">Load a template file</button><button id="tplx">Save my layout as a template file</button><input type="file" id="tplin" accept=".json,application/json" hidden></div>
-</section>
-    
-  </main>
-  <aside>
-    <div class="card">
-      <button class="pri" id="addt" style="width:100%">Add text box</button>
-    </div>
-    <div class="card" id="fxcard">
+FXCARD_HTML = r'''<div class="card" id="fxcard">
       <h2>Background effects</h2>
       <label for="fxv">Vignette</label><input type="range" id="fxv" min="0" max="100" value="0">
       <label for="fxd">Fade darker</label><input type="range" id="fxd" min="0" max="100" value="0">
@@ -114,37 +215,16 @@ label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
       <label for="fxb">Fade a colour</label><input type="range" id="fxb" min="0" max="100" value="0">
       <div class="row"><input type="color" id="fxc" value="#2f6bff" aria-label="Fade colour"><select id="fxcd" aria-label="Fade colour covers"><option value="all">Whole background</option><option value="bottom">From the bottom</option><option value="top">From the top</option><option value="left">From the left</option><option value="right">From the right</option></select></div>
       <div class="btns"><button id="fxreset">Reset effects</button></div>
-    </div>
-    
-    <div class="card" id="props" hidden>
-      <h2>Selected</h2>
-      <div data-types="text"><label for="tx">Text</label><textarea id="tx"></textarea>
-<label for="fn">Font</label><select id="fn"><option value="Lilita One" style="font-family:'Lilita One'">Lilita One</option><option value="Fredoka" style="font-family:'Fredoka'">Fredoka</option><option value="Anton" style="font-family:'Anton'">Anton</option><option value="Bebas Neue" style="font-family:'Bebas Neue'">Bebas Neue</option><option value="Bangers" style="font-family:'Bangers'">Bangers</option><option value="Montserrat" style="font-family:'Montserrat'">Montserrat</option><option value="Permanent Marker" style="font-family:'Permanent Marker'">Permanent Marker</option><option value="Inter" style="font-family:'Inter'">Inter</option></select>
-<label for="sz">Size (px)</label><div style="display:grid;grid-template-columns:1fr 78px;gap:8px;align-items:center"><input type="range" id="sz" min="20" max="400"><input type="number" id="szn" min="8" max="1000" step="1" aria-label="Size (px)"></div>
-<div class="row"><div><label for="fc">Fill</label><input type="color" id="fc"></div><div><label for="sc">Outline</label><input type="color" id="sc"></div></div>
-<label for="sw2">Outline width</label><input type="range" id="sw2" min="0" max="30">
-<label for="al">Alignment</label><select id="al"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
-<label for="bw">Box width</label><input type="range" id="bw" min="60" max="1280">
-<label for="bh">Box height</label><input type="range" id="bh" min="30" max="720"></div>
-      <div data-types="draw"><div class="row"><div><label for="dcol">Colour</label><input type="color" id="dcol"></div><div><label for="dlw">Line width</label><input type="range" id="dlw" min="1" max="60"></div></div>
-<label class="chk"><input type="checkbox" id="dfill"> Fill shape</label></div>
-      <div data-types="text,img,draw"><div class="row"><div><label for="px">X position (px)</label><input type="number" id="px" step="1"></div><div><label for="py">Y position (px)</label><input type="number" id="py" step="1"></div></div></div>
-      <div data-types="img">
-        <button class="pri" id="rmai" style="width:100%">Remove background</button>
-        <label for="tol">Colour eraser strength</label><input type="range" id="tol" min="1" max="100" value="25">
-        <div class="btns"><button id="rmcol">Erase a colour</button><button id="rmrest">Restore original</button></div>
-        <p class="hint" id="rmmsg"></p>
-      </div>
-      <div data-types="text,img,draw"><label for="rt">Rotation</label><input type="range" id="rt" min="-180" max="180">
-<label for="op">Opacity</label><input type="range" id="op" min="10" max="100">
-<label class="chk"><input type="checkbox" id="sh"> Drop shadow</label>
-<div class="btns"><button id="dup">Duplicate</button><button id="fr">Bring forward</button><button id="bk">Send back</button><button id="del">Delete</button></div></div>
-    </div>
-  </aside>
-</div>
-<script>
-const CONFIG={"canvas": [1280, 720], "fonts": ["Lilita One", "Fredoka", "Anton", "Bebas Neue", "Bangers", "Montserrat", "Permanent Marker", "Inter"], "bg_color": "#bdc0c0", "fade_colour": "#2f6bff", "new_text": {"text": "Your text", "font": "Bangers", "size": 140, "bw": 640, "bh": 320, "align": "center", "color": "#ffffff", "stroke": "#000000", "sw": 0}, "starter": [{"text": "Enter Class name here", "size": 58, "bw": 480, "bh": 240, "x": 280.0, "y": 160.0}, {"text": "Enter encounter name here", "size": 96, "bw": 640, "bh": 320, "x": 920.0, "y": 200.0}], "props": [{"id": "tx", "key": "text", "kind": "textarea", "applies": ["text"], "nonempty": true}, {"id": "fn", "key": "font", "kind": "select", "applies": ["text"]}, {"id": "sz", "key": "size", "kind": "range", "applies": ["text"], "box": {"id": "szn", "min": 8, "max": 1000}}, {"id": "fc", "key": "color", "kind": "color", "applies": ["text"]}, {"id": "sc", "key": "stroke", "kind": "color", "applies": ["text"]}, {"id": "sw2", "key": "sw", "kind": "range", "applies": ["text"]}, {"id": "al", "key": "align", "kind": "select", "applies": ["text"]}, {"id": "bw", "key": "bw", "kind": "range", "applies": ["text"]}, {"id": "bh", "key": "bh", "kind": "range", "applies": ["text"]}, {"id": "dcol", "key": "color", "kind": "color", "applies": ["draw"]}, {"id": "dlw", "key": "lw", "kind": "range", "applies": ["draw"]}, {"id": "dfill", "key": "fill", "kind": "checkbox", "applies": ["draw"]}, {"id": "rt", "key": "rot", "kind": "range", "applies": ["text", "img", "draw"]}, {"id": "op", "key": "op", "kind": "range", "applies": ["text", "img", "draw"]}, {"id": "sh", "key": "sh", "kind": "checkbox", "applies": ["text", "img", "draw"]}]};
-const W=CONFIG.canvas[0],H=CONFIG.canvas[1],cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
+    </div>'''
+
+TEMPLATES_HTML = r'''<section class="card tplwrap" id="tplcard">
+  <h2>Templates</h2>
+  <div class="tplrow" id="tpl"></div>
+  <p class="hint">Click a template to load it. This replaces your current layout.</p>
+  <div class="btns"><button id="tplf">Load a template file</button><button id="tplx">Save my layout as a template file</button><input type="file" id="tplin" accept=".json,application/json" hidden></div>
+</section>'''
+
+JS_CORE = r'''const W=CONFIG.canvas[0],H=CONFIG.canvas[1],cv=document.getElementById('cv'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
 const FONTS=CONFIG.fonts;
 let items=[],sel=null,bg={img:null,color:CONFIG.bg_color,fxc:CONFIG.fade_colour,dirs:{dark:'all',light:'all',col:'all'},fx:{vig:0,dark:0,light:0,col:0}};
 
@@ -379,14 +459,150 @@ $('bgf').onchange=e=>{[...e.target.files].forEach(f=>shrink(f,1280,d=>{bgList.pu
 
 $('dl').onclick=()=>{const keep=sel;sel=null;draw(false);cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='thumbnail.png';a.click();sel=keep;draw()},'image/png')};
 
+'''
 
-
-/* ---------- start ---------- */
+JS_START = r'''/* ---------- start ---------- */
 renderBank();renderBgs();loadLibrary();loadTemplates();
 CONFIG.starter.forEach(o=>push(Object.assign({type:'text'},CONFIG.new_text,o)));
 draw();
 Promise.all(FONTS.map(f=>document.fonts.load(`40px "${f}"`))).then(()=>draw()).catch(()=>{});
+'''
 
+# =====================================================================
+# The generator (you should not need to touch this part)
+# =====================================================================
+def _esc(s):
+    return _html.escape(str(s), quote=True)
+
+
+def _control(p):
+    i, k, lab = p["id"], p["kind"], _esc(p["label"])
+    if k == "checkbox":
+        return f'<label class="chk"><input type="checkbox" id="{i}"> {lab}</label>'
+    if k == "textarea":
+        inp = f'<textarea id="{i}"></textarea>'
+    elif k == "color":
+        inp = f'<input type="color" id="{i}">'
+    elif k == "select":
+        opts = [(f, f) for f in FONTS] if p["options"] == "fonts" else p["options"]
+        inner = "".join(
+            f'<option value="{_esc(v)}"' + (f" style=\"font-family:'{_esc(v)}'\"" if p["options"] == "fonts" else "") + f">{_esc(t)}</option>"
+            for v, t in opts)
+        inp = f'<select id="{i}">{inner}</select>'
+    elif k == "range":
+        inp = f'<input type="range" id="{i}" min="{p["min"]}" max="{p["max"]}">'
+        if p.get("box"):
+            b = p["box"]
+            inp = ('<div style="display:grid;grid-template-columns:1fr 78px;gap:8px;align-items:center">' + inp +
+                   f'<input type="number" id="{b["id"]}" min="{b["min"]}" max="{b["max"]}" step="1" aria-label="{lab}"></div>')
+    else:
+        inp = f'<input type="text" id="{i}">'
+    return f'<label for="{i}">{lab}</label>{inp}'
+
+
+def _panel_html():
+    out, i = [], 0
+    while i < len(PANEL):
+        j = i
+        while j < len(PANEL) and PANEL[j]["applies"] == PANEL[i]["applies"]:
+            j += 1
+        parts, k = [], i
+        while k < j:
+            e = PANEL[k]
+            if "raw" in e:
+                parts.append(e["raw"]); k += 1
+            elif e.get("row"):
+                m = k
+                while m < j and PANEL[m].get("row") == e["row"]:
+                    m += 1
+                parts.append('<div class="row">' + "".join(f"<div>{_control(x)}</div>" for x in PANEL[k:m]) + "</div>")
+                k = m
+            else:
+                parts.append(_control(e)); k += 1
+        out.append(f'<div data-types="{",".join(PANEL[i]["applies"])}">' + "\n".join(parts) + "</div>")
+        i = j
+    return "\n      ".join(out)
+
+
+def _config():
+    props = []
+    for e in PANEL:
+        if "raw" in e:
+            continue
+        d = {k: e[k] for k in ("id", "key", "kind", "applies")}
+        if e.get("box"):
+            d["box"] = e["box"]
+        if e.get("nonempty"):
+            d["nonempty"] = True
+        props.append(d)
+    cfg = dict(canvas=list(CANVAS), fonts=FONTS, bg_color=BG_COLOR, fade_colour=FADE_COLOUR,
+               new_text=NEW_TEXT, starter=STARTER, props=props)
+    return json.dumps(cfg).replace("</", "<\\/")
+
+
+def build():
+    families = []
+    for f in ["Inter", "Lilita One"] + FONTS:      # Inter / Lilita One are used by the page itself
+        fam = FONT_SOURCES.get(f, f.replace(" ", "+"))
+        if fam not in families:
+            families.append(fam)
+    fonts_url = "https://fonts.googleapis.com/css2?family=" + "&family=".join(families) + "&display=swap"
+    theme = "".join(f"--{k}:{v};" for k, v in THEME.items())
+    w, h = CANVAS
+    hint = (f"{w} × {h}. Click to select, drag to move, pull the round handle to resize "
+            "(text wraps inside its box), double-click text to edit. Delete removes, arrow keys nudge.")
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{_esc(TITLE)}</title>
+<link href="{fonts_url}" rel="stylesheet">
+<style>
+{CSS.replace('/*THEME*/', theme)}
+{EXTRA_CSS}
+</style>
+</head>
+<body>
+<header><h1>{_esc(TITLE)}</h1><button class="pri" id="dl">Download PNG</button></header>
+<div class="app">
+  <aside>
+    {LEFT_HTML}
+    {EXTRA_LEFT_HTML}
+  </aside>
+  <main class="stage">
+    <canvas id="cv" width="{w}" height="{h}" aria-label="Thumbnail canvas"></canvas>
+    <p class="hint">{_esc(hint)}</p>
+    <p class="hint">{_esc(DISCLAIMER)}</p>
+    {TEMPLATES_HTML}
+    {EXTRA_MAIN_HTML}
+  </main>
+  <aside>
+    <div class="card">
+      <button class="pri" id="addt" style="width:100%">Add text box</button>
+    </div>
+    {FXCARD_HTML}
+    {EXTRA_RIGHT_HTML}
+    <div class="card" id="props" hidden>
+      <h2>Selected</h2>
+      {_panel_html()}
+    </div>
+  </aside>
+</div>
+<script>
+const CONFIG={_config()};
+{JS_CORE}
+{EXTRA_JS}
+{JS_START}
 </script>
 </body>
 </html>
+"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(page)
+    print("Wrote", path, f"({len(page):,} characters)")
+
+
+if __name__ == "__main__":
+    build()
